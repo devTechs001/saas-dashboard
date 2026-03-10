@@ -1,0 +1,49 @@
+{
+  "name": "enterprise-saas-dashboard",
+  "version": "1.0.0",
+  "description": "Enterprise SaaS Dashboard - Analytics & CRM Platform",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "dev:all": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "build:client": "cd client && npm run build",
+    "build:server": "cd server && npm run build",
+    "build": "npm run build:client && npm run build:server",
+    "start:client": "cd client && npm run preview",
+    "start:server": "cd server && npm start",
+    "start": "npm run start:server",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "seed": "cd server && npm run seed",
+    "lint:client": "cd client && npm run lint",
+    "lint:server": "cd server && npm run lint",
+    "lint": "npm run lint:client && npm run lint:server",
+    "test:client": "cd client && npm run test",
+    "test:server": "cd server && npm run test",
+    "test": "npm run test:client && npm run test:server"
+  },
+  "keywords": [
+    "saas",
+    "dashboard",
+    "analytics",
+    "crm",
+    "enterprise",
+    "react",
+    "nodejs",
+    "mongodb",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}

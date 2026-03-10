@@ -1,0 +1,30 @@
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Box, CircularProgress, Typography } from '@mui/material';
+
+const LoadingSpinner = ({ size = 40, message = 'Loading...' }) => {
+  return (
+    <Box
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+      minHeight="200px"
+      gap={2}
+    >
+      <CircularProgress size={size} />
+      {message && (
+        <Typography variant="body2" color="text.secondary">
+          {message}
+        </Typography>
+      )}
+    </Box>
+  );
+};
+
+LoadingSpinner.propTypes = {
+  size: PropTypes.number,
+  message: PropTypes.string,
+};
+
+export default LoadingSpinner;
