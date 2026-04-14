@@ -21,7 +21,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useDispatch, useSelector } from 'react-redux';
-import { toggleSidebar, setSidebarOpen } from '../../store/slices/themeSlice.js';
+import { toggleSidebar, setSidebarOpen } from '../../store/slices/themeSlice';
 
 const DRAWER_WIDTH = 240;
 const MINI_DRAWER_WIDTH = 60;

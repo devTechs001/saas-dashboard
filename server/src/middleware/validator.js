@@ -12,7 +12,7 @@ export const validate = (req, res, next) => {
     message: err.msg,
   }));
 
-  throw ApiError.badRequest('Validation failed', extractedErrors);
+  throw ApiError.badRequest('Validation failed: ' + extractedErrors.map(e => e.message).join(', '));
 };
 
 export const registerValidator = [

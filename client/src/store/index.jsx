@@ -1,9 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit';
-import authReducer from './slices/authSlice.js';
-import customerReducer from './slices/customerSlice.js';
-import analyticsReducer from './slices/analyticsSlice.js';
-import notificationReducer from './slices/notificationSlice.js';
-import themeReducer from './slices/themeSlice.js';
+import authReducer from './slices/authSlice';
+import customerReducer from './slices/customerSlice';
+import analyticsReducer from './slices/analyticsSlice';
+import notificationReducer from './slices/notificationSlice';
+import themeReducer from './slices/themeSlice';
 
 const store = configureStore({
   reducer: {

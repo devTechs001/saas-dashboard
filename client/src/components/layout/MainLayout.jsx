@@ -1,9 +1,9 @@
 import React from 'react';
 import { Box, Drawer, useTheme, useMediaQuery } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
-import { setMobileSidebarOpen } from '../../store/slices/themeSlice.js';
-import Sidebar from './Sidebar.js';
-import Header from './Header.js';
+import { setMobileSidebarOpen } from '../../store/slices/themeSlice';
+import Sidebar from './Sidebar';
+import Header from './Header';
 
 const DRAWER_WIDTH = 240;
 const MINI_DRAWER_WIDTH = 60;

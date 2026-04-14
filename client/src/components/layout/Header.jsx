@@ -15,7 +15,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { useDispatch, useSelector } from 'react-redux';
-import { toggleMode, toggleMobileSidebar } from '../../store/slices/themeSlice.js';
+import { toggleMode, toggleMobileSidebar } from '../../store/slices/themeSlice';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services';
 import { NotificationBell } from '../common';

@@ -1,12 +1,13 @@
-import LoadingSpinner from './LoadingSpinner.js';
-import Notification from './Notification.js';
-import ConfirmDialog from './ConfirmDialog.js';
-import DataTable from './DataTable.js';
-import StatCard from './StatCard.js';
-import SearchBar from './SearchBar.js';
-import Chart from './Chart.js';
-import NotificationBell from './NotificationBell.js';
-import PageBreadcrumb from './PageBreadcrumb.js';
+import LoadingSpinner from './LoadingSpinner';
+import Notification from './Notification';
+import ConfirmDialog from './ConfirmDialog';
+import DataTable from './DataTable';
+import StatCard from './StatCard';
+import SearchBar from './SearchBar';
+import Chart from './Chart';
+import NotificationBell from './NotificationBell';
+import PageBreadcrumb from './PageBreadcrumb';
+import Splash from './Splash';
 
 export {
   LoadingSpinner,
@@ -18,4 +19,5 @@ export {
   Chart,
   NotificationBell,
   PageBreadcrumb,
+  Splash,
 };

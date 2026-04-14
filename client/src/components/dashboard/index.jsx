@@ -1,8 +1,8 @@
-import DashboardStats from './DashboardStats.js';
-import TrafficChart from './TrafficChart.js';
-import RevenueChart from './RevenueChart.js';
-import DeviceBreakdown from './DeviceBreakdown.js';
-import TopPages from './TopPages.js';
+import DashboardStats from './DashboardStats';
+import TrafficChart from './TrafficChart';
+import RevenueChart from './RevenueChart';
+import DeviceBreakdown from './DeviceBreakdown';
+import TopPages from './TopPages';
 
 export {
   DashboardStats,
