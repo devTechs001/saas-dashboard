@@ -1,7 +1,9 @@
+import crypto from 'crypto';
 import User from '../models/User.js';
 import catchAsync from '../utils/catchAsync.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/apiError.js';
+import logger from '../utils/logger.js';
 
 export const register = catchAsync(async (req, res) => {
   const { name, email, password, role, permissions } = req.body;
@@ -86,15 +88,57 @@ export const getProfile = catchAsync(async (req, res) => {
 });
 
 export const updateProfile = catchAsync(async (req, res) => {
-  const { name, avatar } = req.body;
+  const { name, avatar, coverPhoto, title, phone } = req.body;
 
   const user = await User.findByIdAndUpdate(
     req.user.id,
-    { name, avatar },
+    { name, avatar, coverPhoto, title, phone },
     { new: true, runValidators: true }
   );
 
   res.json(ApiResponse.success({ user }, 'Profile updated successfully'));
+});
+
+// Request a password reset. Always returns the same generic message so the
+// endpoint cannot be used to probe which emails are registered (security).
+export const forgotPassword = catchAsync(async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email: (email || '').toLowerCase() });
+
+  if (user) {
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    user.resetPasswordExpire = Date.now() + 30 * 60 * 1000; // 30 minutes
+    await user.save({ validateBeforeSave: false });
+    // Delivery (email) is handled by the notification service; the token is
+    // only logged in development for local flows.
+    if (process.env.NODE_ENV === 'development') {
+      logger.info(`Password reset token for ${email}: ${resetToken}`);
+    }
+  }
+
+  res.json(ApiResponse.success({}, 'If that email exists, a reset link has been sent'));
+});
+
+// Complete a password reset with the emailed token.
+export const resetPassword = catchAsync(async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) throw ApiError.badRequest('Token and password are required');
+
+  const hashed = crypto.createHash('sha256').update(token).digest('hex');
+  const user = await User.findOne({
+    resetPasswordToken: hashed,
+    resetPasswordExpire: { $gt: Date.now() },
+  }).select('+password');
+
+  if (!user) throw ApiError.badRequest('Reset token is invalid or has expired');
+
+  user.password = password;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+  await user.save();
+
+  res.json(ApiResponse.success({}, 'Password has been reset successfully'));
 });
 
 export const changePassword = catchAsync(async (req, res) => {

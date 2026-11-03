@@ -1,436 +1,384 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Container,
-  Typography,
-  Button,
-  Grid,
-  Card,
-  CardContent,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
-  Paper,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  Checkbox,
-  FormControlLabel,
+  Box, Stepper, Step, StepLabel, Typography, Button, Stack, TextField, MenuItem,
+  Chip, Card, CardContent, Grid, Avatar, IconButton, useTheme, alpha, Alert,
 } from '@mui/material';
-import {
-  Dashboard as DashboardIcon,
-  People as PeopleIcon,
-  Analytics as AnalyticsIcon,
-  Settings as SettingsIcon,
-  Check as CheckIcon,
-  ArrowForward as ArrowForwardIcon,
-  ArrowBack as ArrowBackIcon,
-} from '@mui/icons-material';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunchOutlined';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PersonIcon from '@mui/icons-material/PersonOutlineOutlined';
+import BusinessIcon from '@mui/icons-material/BusinessOutlined';
+import PaletteIcon from '@mui/icons-material/PaletteOutlined';
+import GroupAddIcon from '@mui/icons-material/GroupAddOutlined';
+import PartyPopperIcon from '@mui/icons-material/CelebrationOutlined';
+import { useDispatch, useSelector } from 'react-redux';
+import { setMode, setAccent } from '../../store/slices/themeSlice';
+import { updateUser } from '../../store/slices/authSlice.jsx';
+import { AppAvatar, GradientText } from '../../components/ui';
+import { ACCENTS } from '../../theme';
+import { getInitials, getAvatarColor } from '../../utils/format';
+import toast from 'react-hot-toast';
+import { playSuccessSound } from '../../utils/sound';
 
-const steps = ['Welcome', 'Company Info', 'Select Features', 'Configure Dashboard', 'Complete'];
+const STEPS = ['Welcome', 'Your profile', 'Workspace', 'Personalize', 'Invite team', 'Done'];
 
-const Onboarding = () => {
+const INDUSTRIES = ['Technology', 'Finance', 'Healthcare', 'Retail', 'Manufacturing', 'Education', 'Media', 'Other'];
+const COMPANY_SIZES = ['1–10', '11–50', '51–200', '201–1000', '1000+'];
+
+const Onboarding = ({ onComplete }) => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const theme = useTheme();
+  const user = useSelector((state) => state.auth.user);
+  const mode = useSelector((state) => state.theme.mode);
+  const accent = useSelector((state) => state.theme.accent);
+
   const [activeStep, setActiveStep] = useState(0);
-  const [formData, setFormData] = useState({
-    companyName: '',
-    industry: '',
-    companySize: '',
-    features: [],
-    dashboardLayout: 'default',
-    receiveTips: true,
-    newsletter: false,
+  const [data, setData] = useState({
+    name: user?.name || '',
+    title: '',
+    avatar: user?.avatar || '',
+    company: '',
+    industry: INDUSTRIES[0],
+    companySize: COMPANY_SIZES[0],
+    invites: [],
   });
+  const [inviteInput, setInviteInput] = useState('');
 
-  const industries = [
-    'Technology',
-    'Finance',
-    'Healthcare',
-    'Retail',
-    'Manufacturing',
-    'Education',
-    'Media',
-    'Other',
-  ];
-
-  const companySizes = [
-    '1-10',
-    '11-50',
-    '51-200',
-    '201-500',
-    '501-1000',
-    '1000+',
-  ];
-
-  const availableFeatures = [
-    { id: 'analytics', name: 'Analytics Dashboard', icon: <AnalyticsIcon />, description: 'Track key metrics and KPIs' },
-    { id: 'customers', name: 'Customer Management', icon: <PeopleIcon />, description: 'Manage customer relationships' },
-    { id: 'reports', name: 'Custom Reports', icon: <DashboardIcon />, description: 'Build and share reports' },
-    { id: 'settings', name: 'Team Settings', icon: <SettingsIcon />, description: 'Manage team access' },
-  ];
+  const set = (patch) => setData((d) => ({ ...d, ...patch }));
 
   const handleNext = () => {
-    if (activeStep === steps.length - 1) {
-      navigate('/dashboard');
-    } else {
-      setActiveStep((prevStep) => prevStep + 1);
+    if (activeStep === 1 && !data.name.trim()) {
+      toast.error('Please enter your name');
+      return;
     }
-  };
-
-  const handleBack = () => {
-    setActiveStep((prevStep) => prevStep - 1);
-  };
-
-  const handleFeatureToggle = (featureId) => {
-    setFormData((prev) => ({
-      ...prev,
-      features: prev.features.includes(featureId)
-        ? prev.features.filter((f) => f !== featureId)
-        : [...prev.features, featureId],
-    }));
-  };
-
-  const renderStepContent = (step) => {
-    switch (step) {
-      case 0:
-        return (
-          <Box textAlign="center" py={4}>
-            <Box
-              sx={{
-                width: 120,
-                height: 120,
-                borderRadius: 24,
-                bgcolor: 'primary.main',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mx: 'auto',
-                mb: 3,
-              }}
-            >
-              <DashboardIcon sx={{ fontSize: 64 }} />
-            </Box>
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
-              Welcome to Enterprise SaaS!
-            </Typography>
-            <Typography variant="body1" color="text.secondary" paragraph maxWidth="500px" mx="auto">
-              Let's set up your dashboard in a few simple steps. This will help us customize the experience for your needs.
-            </Typography>
-            <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'center' }}>
-              {[
-                { icon: <AnalyticsIcon />, text: 'Analytics' },
-                { icon: <PeopleIcon />, text: 'CRM' },
-                { icon: <DashboardIcon />, text: 'Reports' },
-              ].map((item, index) => (
-                <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-                  {item.icon}
-                  <Typography variant="body2">{item.text}</Typography>
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        );
-
-      case 1:
-        return (
-          <Box py={4}>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
-              Tell us about your company
-            </Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
-              This helps us tailor the dashboard to your industry.
-            </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Company Name"
-                  value={formData.companyName}
-                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                  placeholder="Enter your company name"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Industry</InputLabel>
-                  <Select
-                    value={formData.industry}
-                    label="Industry"
-                    onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                  >
-                    {industries.map((industry) => (
-                      <MenuItem key={industry} value={industry}>
-                        {industry}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Company Size</InputLabel>
-                  <Select
-                    value={formData.companySize}
-                    label="Company Size"
-                    onChange={(e) => setFormData({ ...formData, companySize: e.target.value })}
-                  >
-                    {companySizes.map((size) => (
-                      <MenuItem key={size} value={size}>
-                        {size} employees
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.receiveTips}
-                      onChange={(e) => setFormData({ ...formData, receiveTips: e.target.checked })}
-                    />
-                  }
-                  label="Send me product tips and best practices"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.newsletter}
-                      onChange={(e) => setFormData({ ...formData, newsletter: e.target.checked })}
-                    />
-                  }
-                  label="Subscribe to our newsletter"
-                />
-              </Grid>
-            </Grid>
-          </Box>
-        );
-
-      case 2:
-        return (
-          <Box py={4}>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
-              Select features to enable
-            </Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
-              Choose the modules you want in your dashboard. You can change this later.
-            </Typography>
-            <Grid container spacing={3}>
-              {availableFeatures.map((feature) => (
-                <Grid item xs={12} sm={6} key={feature.id}>
-                  <Card
-                    sx={{
-                      cursor: 'pointer',
-                      border: formData.features.includes(feature.id) ? '2px solid' : '1px solid',
-                      borderColor: formData.features.includes(feature.id) ? 'primary.main' : 'divider',
-                      '&:hover': { boxShadow: 3 },
-                      transition: 'all 0.3s',
-                    }}
-                    onClick={() => handleFeatureToggle(feature.id)}
-                  >
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box
-                          sx={{
-                            color: formData.features.includes(feature.id) ? 'primary.main' : 'text.secondary',
-                          }}
-                        >
-                          {feature.icon}
-                        </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="h6" fontWeight="bold">
-                            {feature.name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {feature.description}
-                          </Typography>
-                        </Box>
-                        <Checkbox checked={formData.features.includes(feature.id)} />
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        );
-
-      case 3:
-        return (
-          <Box py={4}>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
-              Choose your dashboard layout
-            </Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
-              Select a starting layout for your dashboard.
-            </Typography>
-            <Grid container spacing={3}>
-              {[
-                { id: 'default', name: 'Default', description: 'Balanced layout with all widgets' },
-                { id: 'analytics', name: 'Analytics Focus', description: 'Emphasis on charts and metrics' },
-                { id: 'minimal', name: 'Minimal', description: 'Clean and simple layout' },
-              ].map((layout) => (
-                <Grid item xs={12} key={layout.id}>
-                  <Card
-                    sx={{
-                      cursor: 'pointer',
-                      border: formData.dashboardLayout === layout.id ? '2px solid' : '1px solid',
-                      borderColor: formData.dashboardLayout === layout.id ? 'primary.main' : 'divider',
-                      '&:hover': { boxShadow: 3 },
-                      transition: 'all 0.3s',
-                    }}
-                    onClick={() => setFormData({ ...formData, dashboardLayout: layout.id })}
-                  >
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box
-                          sx={{
-                            width: 60,
-                            height: 60,
-                            borderRadius: 2,
-                            bgcolor: formData.dashboardLayout === layout.id ? 'primary.light' : 'grey.100',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <DashboardIcon
-                            sx={{
-                              color: formData.dashboardLayout === layout.id ? 'primary.main' : 'text.secondary',
-                            }}
-                          />
-                        </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="h6" fontWeight="bold">
-                            {layout.name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {layout.description}
-                          </Typography>
-                        </Box>
-                        <Chip
-                          icon={formData.dashboardLayout === layout.id ? <CheckIcon /> : null}
-                          label={formData.dashboardLayout === layout.id ? 'Selected' : ''}
-                          color={formData.dashboardLayout === layout.id ? 'primary' : 'default'}
-                          variant={formData.dashboardLayout === layout.id ? 'filled' : 'outlined'}
-                        />
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        );
-
-      case 4:
-        return (
-          <Box textAlign="center" py={4}>
-            <Box
-              sx={{
-                width: 100,
-                height: 100,
-                borderRadius: '50%',
-                bgcolor: 'success.main',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mx: 'auto',
-                mb: 3,
-              }}
-            >
-              <CheckIcon sx={{ fontSize: 48 }} />
-            </Box>
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
-              You're all set!
-            </Typography>
-            <Typography variant="body1" color="text.secondary" paragraph maxWidth="500px" mx="auto">
-              Your dashboard has been configured based on your preferences. Let's get started!
-            </Typography>
-            <Paper sx={{ p: 3, mt: 4, bgcolor: 'background.default' }}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>
-                Your Setup Summary
-              </Typography>
-              <Box sx={{ mt: 2, textAlign: 'left' }}>
-                <Typography variant="body2">
-                  <strong>Company:</strong> {formData.companyName || 'Not specified'}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Industry:</strong> {formData.industry || 'Not specified'}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Features:</strong> {formData.features.length > 0 ? formData.features.join(', ') : 'Default'}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Layout:</strong> {formData.dashboardLayout}
-                </Typography>
-              </Box>
-            </Paper>
-          </Box>
-        );
-
-      default:
-        return null;
+    if (activeStep === STEPS.length - 1) {
+      handleFinish();
+      return;
     }
+    setActiveStep((s) => s + 1);
+  };
+
+  const handleFinish = () => {
+    dispatch(updateUser({ name: data.name, avatar: data.avatar, title: data.title }));
+    localStorage.setItem('onboardingData', JSON.stringify(data));
+    playSuccessSound();
+    toast.success('Welcome to Nexus! 🎉');
+    if (onComplete) onComplete();
+    navigate('/dashboard');
+  };
+
+  const addInvite = () => {
+    const email = inviteInput.trim();
+    if (!email || !email.includes('@')) return;
+    if (data.invites.includes(email)) return;
+    set({ invites: [...data.invites, email] });
+    setInviteInput('');
+  };
+
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) {
+      toast.error('Image must be under 1 MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => set({ avatar: reader.result });
+    reader.readAsDataURL(file);
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Container maxWidth="md">
-        <Box sx={{ py: 4 }}>
-          {/* Progress Stepper */}
-          <Stepper activeStep={activeStep} orientation="vertical" sx={{ mb: 4 }}>
-            {steps.map((label, index) => (
-              <Step key={label}>
-                <StepLabel
-                  sx={{
-                    '& .MuiStepLabel-label': {
-                      fontWeight: index === activeStep ? 'bold' : 'normal',
-                      color: index <= activeStep ? 'primary.main' : 'text.secondary',
-                    },
-                  }}
-                >
-                  {label}
-                </StepLabel>
-                <StepContent>
-                  {renderStepContent(index)}
-                </StepContent>
-              </Step>
-            ))}
-          </Stepper>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
+      {/* Top bar */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: { xs: 2, md: 4 }, py: 2 }}>
+        <Stack direction="row" spacing={1.25} alignItems="center">
+          <Box sx={{
+            width: 38, height: 38, borderRadius: 2.25, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)', color: '#fff',
+          }}>
+            <RocketLaunchIcon sx={{ fontSize: 20 }} />
+          </Box>
+          <Typography variant="h6" fontWeight={800}>Nexus Setup</Typography>
+        </Stack>
+        <Button color="inherit" size="small" endIcon={<CloseIcon fontSize="small" />} onClick={handleFinish}>
+          Skip for now
+        </Button>
+      </Stack>
 
-          {/* Navigation Buttons */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-            <Button
-              disabled={activeStep === 0}
-              onClick={handleBack}
-              startIcon={<ArrowBackIcon />}
-            >
-              Back
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              endIcon={activeStep === steps.length - 1 ? <CheckIcon /> : <ArrowForwardIcon />}
-              disabled={
-                (activeStep === 1 && !formData.companyName) ||
-                (activeStep === 2 && formData.features.length === 0)
-              }
-            >
-              {activeStep === steps.length - 1 ? 'Finish' : 'Continue'}
-            </Button>
+      {/* Stepper */}
+      <Box sx={{ px: { xs: 2, md: 6 }, maxWidth: 1000, mx: 'auto', width: '100%' }}>
+        <Stepper activeStep={activeStep} alternativeLabel sx={{ display: { xs: 'none', md: 'flex' } }}>
+          {STEPS.map((label) => (
+            <Step key={label}><StepLabel>{label}</StepLabel></Step>
+          ))}
+        </Stepper>
+        <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1.5, py: 1 }}>
+          <Typography variant="caption" color="text.secondary" fontWeight={700}>
+            STEP {activeStep + 1} / {STEPS.length}
+          </Typography>
+          <Box sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'action.hover' }}>
+            <Box sx={{ width: `${((activeStep + 1) / STEPS.length) * 100}%`, height: '100%', borderRadius: 3, background: 'linear-gradient(90deg, #6366F1, #A78BFA)' }} />
           </Box>
         </Box>
-      </Container>
+      </Box>
+
+      {/* Content */}
+      <Box sx={{ flex: 1, px: { xs: 2, md: 4 }, py: 3, maxWidth: 1000, mx: 'auto', width: '100%' }}>
+        {/* ===== Welcome ===== */}
+        {activeStep === 0 && (
+          <Grid container spacing={3} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Chip label="GETTING STARTED" color="primary" variant="outlined" sx={{ fontWeight: 700, mb: 2 }} />
+              <Typography variant="h2" sx={{ fontSize: { xs: '1.9rem', md: '2.5rem' }, lineHeight: 1.15 }}>
+                Welcome aboard, <GradientText>{(data.name || 'friend').split(' ')[0]}</GradientText> 👋
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mt: 2, lineHeight: 1.8 }}>
+                Let's set up your workspace in under two minutes. We'll personalize your
+                profile, theme, and team — you can change everything later in Settings.
+              </Typography>
+              <Stack spacing={1.25} sx={{ mt: 3 }}>
+                {['Personalized dashboards & AI insights', 'Real-time collaboration & notifications', 'Enterprise-grade security & roles'].map((t) => (
+                  <Stack key={t} direction="row" spacing={1.25} alignItems="center">
+                    <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: 'success.main', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <CheckIcon sx={{ fontSize: 14 }} />
+                    </Box>
+                    <Typography variant="body2" fontWeight={600}>{t}</Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                <Box component="img" src="/images/hero-dashboard.png" alt="Dashboard preview" sx={{ width: '100%', display: 'block' }} />
+              </Box>
+            </Grid>
+          </Grid>
+        )}
+
+        {/* ===== Profile ===== */}
+        {activeStep === 1 && (
+          <Card sx={{ maxWidth: 640, mx: 'auto' }}>
+            <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
+                <PersonIcon color="primary" />
+                <Box>
+                  <Typography variant="h5" fontWeight={800}>Your profile</Typography>
+                  <Typography variant="body2" color="text.secondary">How teammates will see you</Typography>
+                </Box>
+              </Stack>
+
+              <Stack direction="row" spacing={2.5} alignItems="center" sx={{ mb: 3 }}>
+                <Avatar src={data.avatar || undefined} sx={{ width: 84, height: 84, bgcolor: getAvatarColor(data.name), fontSize: '1.6rem', fontWeight: 800 }}>
+                  {getInitials(data.name)}
+                </Avatar>
+                <Box>
+                  <Button variant="outlined" component="label" size="small" sx={{ borderRadius: 2, mr: 1 }}>
+                    Upload photo
+                    <input hidden accept="image/*" type="file" onChange={handleAvatarUpload} />
+                  </Button>
+                  {data.avatar && (
+                    <Button size="small" color="inherit" onClick={() => set({ avatar: '' })}>Remove</Button>
+                  )}
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                    JPG or PNG, max 1 MB. We'll generate initials if you skip this.
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField fullWidth label="Full name" value={data.name} onChange={(e) => set({ name: e.target.value })} placeholder="Ada Lovelace" autoFocus />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField fullWidth label="Job title" value={data.title} onChange={(e) => set({ title: e.target.value })} placeholder="Head of Revenue Operations" />
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ===== Workspace ===== */}
+        {activeStep === 2 && (
+          <Card sx={{ maxWidth: 640, mx: 'auto' }}>
+            <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
+                <BusinessIcon color="primary" />
+                <Box>
+                  <Typography variant="h5" fontWeight={800}>Your workspace</Typography>
+                  <Typography variant="body2" color="text.secondary">Tell us about your company</Typography>
+                </Box>
+              </Stack>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField fullWidth label="Company name" value={data.company} onChange={(e) => set({ company: e.target.value })} placeholder="Acme Inc." autoFocus />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField select fullWidth label="Industry" value={data.industry} onChange={(e) => set({ industry: e.target.value })}>
+                    {INDUSTRIES.map((i) => <MenuItem key={i} value={i}>{i}</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField select fullWidth label="Company size" value={data.companySize} onChange={(e) => set({ companySize: e.target.value })}>
+                    {COMPANY_SIZES.map((s) => <MenuItem key={s} value={s}>{s} employees</MenuItem>)}
+                  </TextField>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ===== Personalize ===== */}
+        {activeStep === 3 && (
+          <Card sx={{ maxWidth: 720, mx: 'auto' }}>
+            <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
+                <PaletteIcon color="primary" />
+                <Box>
+                  <Typography variant="h5" fontWeight={800}>Make it yours</Typography>
+                  <Typography variant="body2" color="text.secondary">Pick a mode and accent color</Typography>
+                </Box>
+              </Stack>
+
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                {[
+                  { key: 'light', label: 'Light', preview: 'linear-gradient(135deg, #F6F7FB 50%, #fff 50%)' },
+                  { key: 'dark', label: 'Dark', preview: 'linear-gradient(135deg, #0B1020 50%, #111731 50%)' },
+                  { key: 'system', label: 'System', preview: 'linear-gradient(135deg, #F6F7FB 50%, #111731 50%)' },
+                ].map((m) => (
+                  <Grid item xs={4} key={m.key}>
+                    <Box
+                      onClick={() => dispatch(setMode(m.key))}
+                      sx={{
+                        p: 1.5, borderRadius: 2.5, cursor: 'pointer', border: '2px solid',
+                        borderColor: mode === m.key ? 'primary.main' : 'divider',
+                      }}
+                    >
+                      <Box sx={{ height: 56, borderRadius: 1.75, background: m.preview, border: '1px solid', borderColor: 'divider', position: 'relative' }}>
+                        {mode === m.key && (
+                          <Box sx={{ position: 'absolute', top: 6, right: 6, width: 20, height: 20, borderRadius: '50%', bgcolor: 'primary.main', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <CheckIcon sx={{ fontSize: 13 }} />
+                          </Box>
+                        )}
+                      </Box>
+                      <Typography variant="body2" fontWeight={700} sx={{ mt: 1 }}>{m.label}</Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+
+              <Typography variant="body2" fontWeight={700} sx={{ mb: 1.5 }}>Accent color</Typography>
+              <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+                {Object.entries(ACCENTS).map(([key, a]) => (
+                  <Box
+                    key={key}
+                    onClick={() => dispatch(setAccent(key))}
+                    sx={{
+                      width: 76, p: 1.25, borderRadius: 2.25, cursor: 'pointer', textAlign: 'center',
+                      border: '2px solid', borderColor: accent === key ? 'primary.main' : 'divider',
+                    }}
+                  >
+                    <Box sx={{
+                      width: 34, height: 34, borderRadius: '50%', mx: 'auto',
+                      background: `linear-gradient(135deg, ${a.main}, ${a.dark})`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                    }}>
+                      {accent === key && <CheckIcon sx={{ fontSize: 15 }} />}
+                    </Box>
+                    <Typography variant="caption" fontWeight={700} sx={{ display: 'block', mt: 0.5 }}>{a.name}</Typography>
+                  </Box>
+                ))}
+              </Stack>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ===== Invite team ===== */}
+        {activeStep === 4 && (
+          <Card sx={{ maxWidth: 640, mx: 'auto' }}>
+            <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
+                <GroupAddIcon color="primary" />
+                <Box>
+                  <Typography variant="h5" fontWeight={800}>Invite your team</Typography>
+                  <Typography variant="body2" color="text.secondary">Nexus is better together (optional)</Typography>
+                </Box>
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                <TextField
+                  fullWidth size="small" label="Email address" placeholder="teammate@company.com"
+                  value={inviteInput} onChange={(e) => setInviteInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addInvite(); } }}
+                />
+                <Button variant="contained" onClick={addInvite} sx={{ whiteSpace: 'nowrap', borderRadius: 2.5 }}>Add</Button>
+              </Stack>
+              {data.invites.length > 0 && (
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 2 }}>
+                  {data.invites.map((email) => (
+                    <Chip
+                      key={email} label={email} onDelete={() => set({ invites: data.invites.filter((i) => i !== email) })}
+                      sx={{ fontWeight: 600 }}
+                    />
+                  ))}
+                </Stack>
+              )}
+              <Alert severity="info" sx={{ mt: 2.5, borderRadius: 2.5 }}>
+                Invitations are sent after setup. You can manage members anytime in the Admin console.
+              </Alert>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ===== Done ===== */}
+        {activeStep === 5 && (
+          <Card sx={{ maxWidth: 640, mx: 'auto', textAlign: 'center' }}>
+            <CardContent sx={{ p: { xs: 3, md: 5 } }}>
+              <Box sx={{
+                width: 84, height: 84, borderRadius: 4, mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'linear-gradient(135deg, #D1FAE5, transparent)', color: 'success.main', mb: 2,
+              }}>
+                <PartyPopperIcon sx={{ fontSize: 44 }} />
+              </Box>
+              <Typography variant="h3" fontWeight={800}>You're all set!</Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mt: 1.5, lineHeight: 1.8 }}>
+                Your workspace is ready{data.company ? ` for ${data.company}` : ''}.
+                {data.invites.length > 0 && ` We'll send ${data.invites.length} invitation${data.invites.length > 1 ? 's' : ''}.`}
+              </Typography>
+              <Stack direction="row" spacing={1.25} justifyContent="center" sx={{ mt: 3, flexWrap: 'wrap', useFlexGap: true }}>
+                <Chip icon={<CheckIcon sx={{ fontSize: '16px !important' }} />} label="Profile created" variant="outlined" />
+                <Chip icon={<CheckIcon sx={{ fontSize: '16px !important' }} />} label="Theme personalized" variant="outlined" />
+                {data.invites.length > 0 && <Chip icon={<CheckIcon sx={{ fontSize: '16px !important' }} />} label={`${data.invites.length} invite${data.invites.length > 1 ? 's' : ''} queued`} variant="outlined" />}
+              </Stack>
+            </CardContent>
+          </Card>
+        )}
+      </Box>
+
+      {/* Footer nav */}
+      <Stack
+        direction="row" justifyContent="space-between" alignItems="center"
+        sx={{ px: { xs: 2, md: 4 }, py: 2.5, borderTop: '1px solid', borderColor: 'divider', maxWidth: 1000, mx: 'auto', width: '100%' }}
+      >
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => setActiveStep((s) => Math.max(0, s - 1))}
+          disabled={activeStep === 0}
+          sx={{ borderRadius: 2.5 }}
+        >
+          Back
+        </Button>
+        <Button
+          variant="contained"
+          endIcon={activeStep === STEPS.length - 1 ? <CheckIcon /> : <ArrowForwardIcon />}
+          onClick={handleNext}
+          sx={{ borderRadius: 2.5, px: 3 }}
+        >
+          {activeStep === STEPS.length - 1 ? 'Open my dashboard' : 'Continue'}
+        </Button>
+      </Stack>
     </Box>
   );
 };

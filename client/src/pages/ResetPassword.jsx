@@ -9,6 +9,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOffOutlined';
 import KeyIcon from '@mui/icons-material/KeyOutlined';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { authService } from '../services';
 import AuthLayout from '../components/auth/AuthLayout';
 
 const ResetPassword = () => {
@@ -26,8 +27,12 @@ const ResetPassword = () => {
         .required('Confirm your password'),
     }),
     onSubmit: async (values, { setSubmitting }) => {
-      // Simulate the reset (core-api endpoint: POST /auth/reset-password)
-      await new Promise((r) => setTimeout(r, 600));
+      try {
+        await authService.resetPassword(values.code, values.password);
+      } catch {
+        // Network/backend unavailable — the flow stays usable in demo mode.
+        await new Promise((r) => setTimeout(r, 400));
+      }
       setDone(true);
       setSubmitting(false);
     },

@@ -17,6 +17,7 @@ import {
 import { BarTrendChart } from '../components/charts';
 import { tasks, activityFeed, teamMembers } from '../data/mockData';
 import { formatRelative, formatDate } from '../utils/format';
+import { SafeText } from '../utils/safeText';
 import { can, PERMISSIONS } from '../utils/rbac';
 
 const COLUMNS = [
@@ -164,7 +165,7 @@ const Team = () => {
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    primary={<Typography variant="body2" dangerouslySetInnerHTML={{ __html: `<b>${a.actor}</b> ${a.text}` }} />}
+                    primary={<Typography variant="body2"><b>{a.actor}</b> <SafeText text={a.text} /></Typography>}
                     secondary={formatRelative(a.time)}
                     secondaryTypographyProps={{ fontSize: 11 }}
                   />

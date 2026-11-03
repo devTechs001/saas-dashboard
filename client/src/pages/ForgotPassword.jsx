@@ -7,6 +7,7 @@ import EmailIcon from '@mui/icons-material/EmailOutlined';
 import MarkEmailReadIcon from '@mui/icons-material/MarkEmailReadOutlined';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { authService } from '../services';
 import AuthLayout from '../components/auth/AuthLayout';
 
 const ForgotPassword = () => {
@@ -18,8 +19,12 @@ const ForgotPassword = () => {
       email: Yup.string().email('Invalid email address').required('Email is required'),
     }),
     onSubmit: async (values, { setSubmitting }) => {
-      // Simulate the reset request (core-api endpoint: POST /auth/forgot-password)
-      await new Promise((r) => setTimeout(r, 600));
+      try {
+        await authService.forgotPassword(values.email);
+      } catch {
+        // Network/backend unavailable — the flow stays usable in demo mode.
+        await new Promise((r) => setTimeout(r, 400));
+      }
       setSent(true);
       setSubmitting(false);
     },

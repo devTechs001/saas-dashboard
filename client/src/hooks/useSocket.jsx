@@ -9,6 +9,10 @@ export const useSocket = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+
+    // Demo-mode sessions run without a backend — don't hammer reconnects.
+    if (!token || token.startsWith('demo-token')) return undefined;
+
     const newSocket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],

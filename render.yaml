@@ -1,0 +1,39 @@
+# Render deployment — server (Node/Express core-api)
+# Blueprint docs: https://render.com/docs/blueprint-spec
+#
+# Usage: create a "Blueprint" from this repo in Render, or a "Web Service"
+# with root directory `server/`. MongoDB (Atlas) + Redis (Render key-value)
+# are provided via environment variables.
+
+services:
+  - type: web
+    name: nexus-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    plan: starter
+    autoDeploy: true
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false # set to your MongoDB Atlas connection string
+      - key: REDIS_URL
+        sync: false # set to your Render Redis connection string
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE
+        value: 7d
+      # The Netlify site that hosts the SPA:
+      - key: CORS_ORIGIN
+        value: https://nexus-saas.netlify.app
+      - key: FRONTEND_URL
+        value: https://nexus-saas.netlify.app
+
+    # Zero-downtime deploys; keep at least one instance warm
+    healthCheckTimeoutSeconds: 30

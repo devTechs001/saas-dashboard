@@ -1,0 +1,36 @@
+# Netlify deployment — client (React SPA)
+# Docs: https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  base = "client/"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # Point the SPA at the Render-hosted API (no trailing /api needed here):
+  # VITE_API_URL = "https://nexus-api.onrender.com/api"
+  # VITE_SOCKET_URL = "https://nexus-api.onrender.com"
+
+# SPA fallback: all routes serve the React app (client-side routing)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Long-cache hashed build assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Security headers on everything
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.onrender.com wss://*.onrender.com https: wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"

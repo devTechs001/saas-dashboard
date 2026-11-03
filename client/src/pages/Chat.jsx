@@ -12,12 +12,15 @@ import VideocamIcon from '@mui/icons-material/VideocamOutlined';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { useSelector } from 'react-redux';
 import { PageHeader, AppAvatar } from '../components/ui';
+import { useSocket } from '../hooks/useSocket';
+import { playMessageSound } from '../utils/sound';
 import { chatChannels, chatMessages, teamMembers } from '../data/mockData';
 import { getAvatarColor } from '../utils/format';
 
 const Chat = () => {
   const theme = useTheme();
   const user = useSelector((state) => state.auth.user);
+  const { socket, isConnected } = useSocket();
   const [channel, setChannel] = React.useState('gen');
   const [draft, setDraft] = React.useState('');
   const [messages, setMessages] = React.useState(chatMessages);
@@ -30,9 +33,41 @@ const Chat = () => {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [channel, messages]);
 
+  // Realtime: receive chat messages relayed by the server.
+  React.useEffect(() => {
+    if (!socket) return undefined;
+    const onMessage = (msg) => {
+      if (!msg || typeof msg.text !== 'string') return;
+      const mine = msg.user === (user?.name || 'You');
+      setMessages((prev) => ({
+        ...prev,
+        [msg.channel || 'gen']: [
+          ...(prev[msg.channel || 'gen'] || []),
+          {
+            id: msg.id || `m_${Date.now()}`,
+            user: msg.user || 'Teammate',
+            text: msg.text,
+            time: new Date(msg.time || Date.now()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            mine,
+          },
+        ],
+      }));
+      if (!mine) playMessageSound();
+    };
+    socket.on('chat:message', onMessage);
+    return () => socket.off('chat:message', onMessage);
+  }, [socket, user]);
+
   const handleSend = () => {
     const text = draft.trim();
     if (!text) return;
+    setDraft('');
+
+    // Broadcast via the realtime server when connected; local echo otherwise.
+    if (socket && isConnected) {
+      socket.emit('chat:message', { channel, text, user: user?.name || 'You' });
+      return;
+    }
     const newMsg = {
       id: `m_${Date.now()}`,
       user: user?.name || 'You',
@@ -41,7 +76,7 @@ const Chat = () => {
       mine: true,
     };
     setMessages((prev) => ({ ...prev, [channel]: [...(prev[channel] || []), newMsg] }));
-    setDraft('');
+    playMessageSound();
   };
 
   return (
@@ -114,6 +149,13 @@ const Chat = () => {
               <TagIcon color="primary" />
               <Typography variant="subtitle1" fontWeight={800}>{activeChannel?.name}</Typography>
               <Chip size="small" label={`${channelMessages.length} messages`} variant="outlined" />
+              <Chip
+                size="small"
+                label={isConnected ? '● live' : '○ local'}
+                color={isConnected ? 'success' : 'default'}
+                variant="outlined"
+                sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
+              />
             </Stack>
             <Stack direction="row" spacing={0.5}>
               <Tooltip title="Summarize with AI">
@@ -121,6 +163,28 @@ const Chat = () => {
               </Tooltip>
               <IconButton><VideocamIcon fontSize="small" /></IconButton>
             </Stack>
+          </Stack>
+
+          {/* Mobile channel chips (sidebar hidden on small screens) */}
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              display: { xs: 'flex', md: 'none' },
+              px: 2, py: 1.25, overflowX: 'auto',
+              borderBottom: '1px solid', borderColor: 'divider',
+            }}
+          >
+            {chatChannels.map((c) => (
+              <Chip
+                key={c.id}
+                label={`#${c.name}`}
+                onClick={() => setChannel(c.id)}
+                color={channel === c.id ? 'primary' : 'default'}
+                variant={channel === c.id ? 'filled' : 'outlined'}
+                sx={{ fontWeight: 600, flexShrink: 0 }}
+              />
+            ))}
           </Stack>
 
           {/* Message list */}

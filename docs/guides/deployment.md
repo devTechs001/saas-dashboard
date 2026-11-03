@@ -12,6 +12,29 @@
 
 Infrastructure as code (Terraform 🚧) provisions per environment; services are identical artifacts across environments — config comes only from env/secrets ([security](../architecture/security.md#secrets-management)).
 
+## Hosted Deployments (Netlify + Render) ✅
+
+The MERN core deploys as two hosted apps — SPA on **Netlify**, API on **Render**. Config lives at the repo root:
+
+### Client → Netlify
+
+1. In Netlify: **Add new site → Import an existing project** → pick this repo.
+2. Netlify reads [`netlify.toml`](../../netlify.toml) automatically:
+   - Base directory `client/`, build `npm run build`, publish `client/dist`
+   - SPA fallback `/* → /index.html 200` (client-side routing for /features, /pricing, /about, /contact…)
+   - Security headers (CSP, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy) + immutable caching for hashed assets
+3. Set build env `VITE_API_URL=https://<your-render-service>.onrender.com/api` (and `VITE_SOCKET_URL` to the same origin without `/api`).
+4. Every push to `main` redeploys automatically (deploy previews per PR).
+
+### Server → Render
+
+1. In Render: **New → Blueprint** → select this repo (reads [`render.yaml`](../../render.yaml)), or create a **Web Service** with root directory `server/`.
+2. Render runs `npm install` + `npm start`, and uses `GET /api/health` as the health check.
+3. Set secrets in the dashboard: `MONGODB_URI` (Atlas), `REDIS_URL`, and optionally override `JWT_SECRET` (auto-generated otherwise).
+4. Set `CORS_ORIGIN` / `FRONTEND_URL` to your Netlify domain so the API and Socket.io accept the SPA origin.
+
+**Security checklist for go-live:** rotate the generated `JWT_SECRET`; keep `CORS_ORIGIN` pinned to the exact Netlify origin; confirm the security headers with `curl -I`; verify `/api/ready` reports `mongo: up` / `redis: up`; enable Render's free TLS and Netlify's HSTS preload once DNS is stable.
+
 ## Container Strategy
 
 One image per service, built multi-stage and distroless/minimal at runtime:

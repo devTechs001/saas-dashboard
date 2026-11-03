@@ -15,6 +15,7 @@ import { initializeSocket } from './config/socket.js';
 import routes from './routes/index.js';
 import { errorConverter, errorHandler } from './middleware/error.js';
 import requestLogger from './middleware/logger.js';
+import requestId from './middleware/requestId.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import logger from './utils/logger.js';
 
@@ -32,7 +33,24 @@ connectDB();
 connectRedis();
 initializeSocket(server);
 
-app.use(helmet());
+// Behind Render/Netlify load balancers — trust the first proxy hop so
+// rate limiting and secure cookies key on the real client IP.
+app.set('trust proxy', 1);
+
+app.use(requestId);
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      connectSrc: ["'self'", 'wss:', 'https:'],
+    },
+  },
+}));
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   credentials: true,

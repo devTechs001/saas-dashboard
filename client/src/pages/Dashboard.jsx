@@ -29,6 +29,7 @@ import {
   activityFeed, goals, aiInsights,
 } from '../data/mockData';
 import { formatCurrency, formatCompact, formatRelative } from '../utils/format';
+import { SafeText } from '../utils/safeText';
 
 const ACTIVITY_ICONS = {
   deal: { icon: <AttachMoneyIcon fontSize="small" />, color: '#059669' },
@@ -39,7 +40,7 @@ const ACTIVITY_ICONS = {
   billing: { icon: <PaymentIcon fontSize="small" />, color: '#0EA5E9' },
 };
 
-const Dashboard = () => {
+const Dashboard = ({ isLive = false }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const user = useSelector((state) => state.auth.user);
@@ -51,6 +52,13 @@ const Dashboard = () => {
         title={`Welcome back, ${firstName} 👋`}
         subtitle="Here's what's happening across your workspace today."
         actions={[
+          <Chip
+            key="live"
+            label={isLive ? '● Live sync' : '○ Offline'}
+            color={isLive ? 'success' : 'default'}
+            variant="outlined"
+            sx={{ fontWeight: 700 }}
+          />,
           <Button key="refresh" variant="outlined" startIcon={<RefreshIcon />} sx={{ borderRadius: 2.5 }}>Refresh</Button>,
           <Button key="report" variant="contained" startIcon={<DescriptionIcon />} onClick={() => navigate('/reports')} sx={{ borderRadius: 2.5 }}>
             New report
@@ -171,7 +179,7 @@ const Dashboard = () => {
                     </ListItemAvatar>
                     <ListItemText
                       primary={
-                        <Typography variant="body2" dangerouslySetInnerHTML={{ __html: `<b>${a.actor}</b> ${a.text}` }} />
+                        <Typography variant="body2"><b>{a.actor}</b> <SafeText text={a.text} /></Typography>
                       }
                       secondary={formatRelative(a.time)}
                       secondaryTypographyProps={{ fontSize: 11 }}

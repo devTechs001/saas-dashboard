@@ -14,11 +14,15 @@ import EmailIcon from '@mui/icons-material/EmailOutlined';
 import PhoneIcon from '@mui/icons-material/PhoneOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import SaveIcon from '@mui/icons-material/SaveOutlined';
+import VolumeUpIcon from '@mui/icons-material/VolumeUpOutlined';
+import VolumeOffIcon from '@mui/icons-material/VolumeOffOutlined';
+import DesktopWindowsIcon from '@mui/icons-material/DesktopWindowsOutlined';
 import { useDispatch, useSelector } from 'react-redux';
-import { toggleMode, setMode, setAccent } from '../store/slices/themeSlice';
+import { toggleMode, setMode, setAccent, setSoundEnabled } from '../store/slices/themeSlice';
 import { updateUser } from '../store/slices/authSlice.jsx';
 import { PageHeader, SectionCard, AppAvatar, RoleChip } from '../components/ui';
 import { ACCENTS } from '../theme';
+import { playNotificationSound, playSuccessSound } from '../utils/sound';
 import toast from 'react-hot-toast';
 import { can, PERMISSIONS } from '../utils/rbac';
 
@@ -160,10 +164,11 @@ const Settings = () => {
             <SectionCard title="Theme mode" subtitle="Choose how Nexus looks to you">
               <Grid container spacing={2}>
                 {[
-                  { key: 'light', label: 'Light', desc: 'Bright and clean', preview: 'linear-gradient(135deg, #F6F7FB 50%, #fff 50%)' },
-                  { key: 'dark', label: 'Dark', desc: 'Easy on the eyes', preview: 'linear-gradient(135deg, #0B1020 50%, #111731 50%)' },
+                  { key: 'light', label: 'Light', desc: 'Bright and clean', preview: 'linear-gradient(135deg, #F6F7FB 50%, #fff 50%)', icon: null },
+                  { key: 'dark', label: 'Dark', desc: 'Easy on the eyes', preview: 'linear-gradient(135deg, #0B1020 50%, #111731 50%)', icon: null },
+                  { key: 'system', label: 'System', desc: 'Match your OS setting', preview: 'linear-gradient(135deg, #F6F7FB 50%, #111731 50%)', icon: <DesktopWindowsIcon /> },
                 ].map((m) => (
-                  <Grid item xs={6} key={m.key}>
+                  <Grid item xs={4} key={m.key}>
                     <Box
                       onClick={() => dispatch(setMode(m.key))}
                       sx={{
@@ -178,7 +183,10 @@ const Settings = () => {
                           </Box>
                         )}
                       </Box>
-                      <Typography variant="subtitle2" fontWeight={800}>{m.label}</Typography>
+                      <Stack direction="row" spacing={0.75} alignItems="center">
+                        {m.icon && React.cloneElement(m.icon, { sx: { fontSize: 16, color: 'text.secondary' } })}
+                        <Typography variant="subtitle2" fontWeight={800}>{m.label}</Typography>
+                      </Stack>
                       <Typography variant="caption" color="text.secondary">{m.desc}</Typography>
                     </Box>
                   </Grid>
@@ -245,6 +253,29 @@ const Settings = () => {
           <Grid item xs={12} md={7}>
             <SectionCard title="Notification preferences" subtitle="Choose what reaches you and where">
               <List disablePadding>
+                <ListItem disablePadding sx={{ py: 1.1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    {theme.soundEnabled ? <VolumeUpIcon color="primary" /> : <VolumeOffIcon color="action" />}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary="Notification sounds"
+                    secondary="Play a gentle chime for new alerts and messages"
+                    primaryTypographyProps={{ variant: 'body2', fontWeight: 700 }}
+                    secondaryTypographyProps={{ variant: 'caption' }}
+                  />
+                  <Switch
+                    checked={theme.soundEnabled}
+                    onChange={(e) => {
+                      dispatch(setSoundEnabled(e.target.checked));
+                      if (e.target.checked) {
+                        playSuccessSound();
+                        toast.success('Notification sounds on');
+                      } else {
+                        toast('Notification sounds off', { icon: '🔕' });
+                      }
+                    }}
+                  />
+                </ListItem>
                 {[
                   { label: 'AI anomaly alerts', desc: 'Churn risks, traffic spikes, forecast changes', email: true, push: true },
                   { label: 'Billing & invoices', desc: 'Payment receipts, failed charges, plan changes', email: true, push: true },
