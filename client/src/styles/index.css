@@ -89,3 +89,53 @@ body {
     display: none !important;
   }
 }
+
+/* ============================================================
+   App-like interaction: prevent text selection & callouts.
+   UI chrome (nav, buttons, cards, chips…) must not highlight
+   when clicked / double-clicked / long-pressed.
+   ============================================================ */
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Keep text selectable where copying genuinely matters:
+   form fields, code, data tables, and anything marked .selectable */
+input,
+textarea,
+[contenteditable='true'],
+[role='textbox'],
+pre,
+pre *,
+code,
+.MuiTableCell-root,
+.MuiTableCell-root *,
+.selectable,
+.selectable * {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Inputs must keep the text cursor affordance */
+input,
+textarea {
+  cursor: auto;
+}
+
+/* Images don't drag out of the layout */
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+  -webkit-user-callout: none;
+}
+
+/* Subtle accent for the places selection remains */
+::selection {
+  background: rgba(99, 102, 241, 0.28);
+}
