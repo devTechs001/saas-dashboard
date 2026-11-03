@@ -1,6 +1,7 @@
 import express from 'express';
 import * as authController from '../controllers/authController.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { authLimiter } from '../middleware/rateLimiter.js';
 import {
   registerValidator,
   loginValidator,
@@ -9,10 +10,11 @@ import {
 
 const router = express.Router();
 
-router.post('/register', registerValidator, authController.register);
-router.post('/login', loginValidator, authController.login);
-router.post('/forgot-password', authController.forgotPassword);
-router.post('/reset-password', authController.resetPassword);
+// Brute-force protection: strict rate limit on all credential/token endpoints.
+router.post('/register', authLimiter, registerValidator, authController.register);
+router.post('/login', authLimiter, loginValidator, authController.login);
+router.post('/forgot-password', authLimiter, authController.forgotPassword);
+router.post('/reset-password', authLimiter, authController.resetPassword);
 
 router.use(protect);
 

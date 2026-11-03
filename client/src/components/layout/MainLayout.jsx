@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Drawer, useTheme, useMediaQuery } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import { setMobileSidebarOpen } from '../../store/slices/themeSlice';
-import Sidebar, { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from './Sidebar';
+import Sidebar, { SidebarContent, DRAWER_WIDTH, MINI_DRAWER_WIDTH } from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
 
@@ -13,19 +13,29 @@ const MainLayout = ({ children }) => {
   const mobileSidebarOpen = useSelector((state) => state.theme.mobileSidebarOpen);
   const sidebarOpen = useSelector((state) => state.theme.sidebarOpen);
 
+  const handleCloseMobileSidebar = () => dispatch(setMobileSidebarOpen(false));
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: 'background.default' }}>
-      {/* Desktop sidebar */}
-      {!isMobile && <Sidebar variant="permanent" />}
+      {/* Desktop sidebar (permanent drawer) */}
+      {!isMobile && <Sidebar />}
 
-      {/* Mobile drawer nav */}
+      {/* Mobile drawer nav — one Drawer only, SidebarContent lives directly inside it */}
       <Drawer
-        open={isMobile && mobileSidebarOpen}
-        onClose={() => dispatch(setMobileSidebarOpen(false))}
+        variant="temporary"
+        open={Boolean(isMobile && mobileSidebarOpen)}
+        onClose={handleCloseMobileSidebar}
         ModalProps={{ keepMounted: true }}
-        sx={{ display: { xs: 'block', md: 'none' } }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            width: DRAWER_WIDTH,
+            boxSizing: 'border-box',
+            bgcolor: 'background.paper',
+          },
+        }}
       >
-        <Sidebar variant="temporary" onNavigate={() => dispatch(setMobileSidebarOpen(false))} />
+        <SidebarContent isOpen onNavigate={handleCloseMobileSidebar} />
       </Drawer>
 
       <Header />

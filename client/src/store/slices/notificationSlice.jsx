@@ -26,7 +26,11 @@ const notificationSlice = createSlice({
       state.loading = false;
     },
     addNotification: (state, action) => {
-      state.notifications.unshift(action.payload);
+      // Accept only well-formed notification objects (hostile/garbage payloads
+      // from a compromised socket must not corrupt the feed).
+      const n = action.payload;
+      if (!n || typeof n !== 'object' || Array.isArray(n)) return;
+      state.notifications.unshift(n);
       state.unreadCount += 1;
     },
     markAsRead: (state, action) => {

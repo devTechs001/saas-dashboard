@@ -11,7 +11,7 @@ import { createAppTheme } from './theme';
 import { useRealtime } from './hooks/useRealtime';
 
 // Static core (loading UX must not depend on a network chunk)
-import { Splash, LoadingSpinner } from './components/common';
+import { Splash, LoadingSpinner, ErrorBoundary } from './components/common';
 import { MainLayout } from './components/layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { PERMISSIONS } from './utils/rbac';
@@ -122,7 +122,7 @@ function AppContent() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
       <ThemeProvider theme={muiTheme}>
         <CssBaseline />
         <Toaster position="top-right" />
@@ -192,14 +192,21 @@ function AppContent() {
           </Suspense>
         </BrowserRouter>
       </ThemeProvider>
-    </QueryClientProvider>
+    </>
   );
 }
 
 function App() {
   return (
     <Provider store={store}>
-      <AppContent />
+      {/* QueryClientProvider must wrap every component that uses react-query
+          hooks (e.g. useRealtime inside AppContent) — otherwise React crashes
+          with "No QueryClient set" and renders a blank page. */}
+      <QueryClientProvider client={queryClient}>
+        <ErrorBoundary>
+          <AppContent />
+        </ErrorBoundary>
+      </QueryClientProvider>
     </Provider>
   );
 }

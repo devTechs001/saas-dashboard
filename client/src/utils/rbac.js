@@ -62,19 +62,23 @@ const ROLE_PERMISSIONS = {
 /**
  * Check whether a user (or role string) holds a permission.
  * Users may also carry explicit `permissions[]` overrides.
+ * Hardened against prototype-chain lookups ('__proto__', 'constructor'…).
  */
 export const can = (userOrRole, permission) => {
   const role = typeof userOrRole === 'string' ? userOrRole : userOrRole?.role;
-  const extra = typeof userOrRole === 'object' ? userOrRole?.permissions || [] : [];
-  if (!role) return false;
-  return (ROLE_PERMISSIONS[role] || []).includes(permission) || extra.includes(permission);
+  const extra = typeof userOrRole === 'object' && userOrRole ? userOrRole.permissions || [] : [];
+  if (typeof role !== 'string' || !role) return false;
+  const rolePerms = Object.hasOwn(ROLE_PERMISSIONS, role) ? ROLE_PERMISSIONS[role] : [];
+  const extraPerms = Array.isArray(extra) ? extra : [];
+  return rolePerms.includes(permission) || extraPerms.includes(permission);
 };
 
 /** Check whether a user has one of the given roles. */
 export const hasRole = (userOrRole, roles = []) => {
   const role = typeof userOrRole === 'string' ? userOrRole : userOrRole?.role;
-  return roles.includes(role);
+  return Array.isArray(roles) && roles.includes(role);
 };
 
 /** All permissions for a role (useful for UI capability previews). */
-export const permissionsForRole = (role) => ROLE_PERMISSIONS[role] || [];
+export const permissionsForRole = (role) =>
+  typeof role === 'string' && Object.hasOwn(ROLE_PERMISSIONS, role) ? ROLE_PERMISSIONS[role] : [];

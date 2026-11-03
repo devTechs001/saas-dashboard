@@ -3,7 +3,7 @@ import {
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   Box, Typography, IconButton, useTheme, Stack, Chip, Tooltip, Collapse,
 } from '@mui/material';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/DashboardOutlined';
 import PeopleIcon from '@mui/icons-material/PeopleAltOutlined';
 import AssessmentIcon from '@mui/icons-material/InsightsOutlined';
@@ -23,9 +23,8 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunchOutlined';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import { useDispatch, useSelector } from 'react-redux';
-import { toggleSidebar, setMobileSidebarOpen } from '../../store/slices/themeSlice';
+import { toggleSidebar } from '../../store/slices/themeSlice';
 import { authService } from '../../services';
-import { useNavigate } from 'react-router-dom';
 import { can, PERMISSIONS } from '../../utils/rbac';
 import { AppAvatar } from '../ui';
 
@@ -67,7 +66,14 @@ const NAV_SECTIONS = [
   },
 ];
 
-const Sidebar = ({ variant = 'permanent', onNavigate }) => {
+/**
+ * The sidebar's inner content (brand, nav, user footer).
+ * Rendered directly inside a parent <Drawer> (mobile), or inside the
+ * permanent desktop <Drawer> wrapper below. Keeping the content separate
+ * from the Drawer avoids the nested-Drawer bug that left the mobile
+ * menu empty.
+ */
+export const SidebarContent = ({ isOpen = true, showCollapse = false, onNavigate }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -76,37 +82,24 @@ const Sidebar = ({ variant = 'permanent', onNavigate }) => {
   const user = useSelector((state) => state.auth.user);
   const [openSections, setOpenSections] = React.useState({ Overview: true, Workspace: true, Platform: true, Account: true });
 
-  const isOpen = variant === 'permanent' ? sidebarOpen : true;
-  const width = variant === 'permanent' ? (sidebarOpen ? DRAWER_WIDTH : MINI_DRAWER_WIDTH) : DRAWER_WIDTH;
-
   const toggleSection = (label) => setOpenSections((s) => ({ ...s, [label]: !s[label] }));
-  const handleNavigate = () => { if (onNavigate) onNavigate(); };
 
   const handleLogout = () => {
     authService.logout();
+    if (onNavigate) onNavigate();
     navigate('/login');
   };
 
   return (
-    <Drawer
-      variant={variant}
-      open={variant === 'permanent' ? true : undefined}
-      sx={{
-        width,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width,
-          boxSizing: 'border-box',
-          transition: theme.transitions.create('width', { easing: theme.transitions.easing.sharp, duration: theme.transitions.duration.enteringScreen }),
-          overflowX: 'hidden',
-          bgcolor: 'background.paper',
-        },
-      }}
-    >
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: isOpen ? DRAWER_WIDTH : MINI_DRAWER_WIDTH }}>
       {/* Brand */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: isOpen ? 'space-between' : 'center', px: 1.5, py: 1.75, minHeight: 64 }}>
+      <Box sx={{
+        display: 'flex', alignItems: 'center',
+        justifyContent: isOpen ? 'space-between' : 'center',
+        px: 1.5, py: 1.75, minHeight: 64, flexShrink: 0,
+      }}>
         {isOpen && (
-          <Stack component={Link} to="/dashboard" direction="row" spacing={1.25} alignItems="center" sx={{ textDecoration: 'none', color: 'inherit' }}>
+          <Stack component={Link} to="/dashboard" onClick={onNavigate} direction="row" spacing={1.25} alignItems="center" sx={{ textDecoration: 'none', color: 'inherit' }}>
             <Box sx={{
               width: 36, height: 36, borderRadius: 2.25, display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)', color: '#fff',
@@ -119,7 +112,7 @@ const Sidebar = ({ variant = 'permanent', onNavigate }) => {
             </Box>
           </Stack>
         )}
-        {variant === 'permanent' && (
+        {showCollapse && (
           <IconButton size="small" onClick={() => dispatch(toggleSidebar())}>
             {sidebarOpen ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
           </IconButton>
@@ -135,7 +128,7 @@ const Sidebar = ({ variant = 'permanent', onNavigate }) => {
             <React.Fragment key={section.label}>
               {isOpen && (
                 <ListItemButton onClick={() => toggleSection(section.label)} sx={{ mx: 2, mt: 1, mb: 0.25, py: 0.4, '&:hover': { bgcolor: 'transparent' } }}>
-                  <Typography variant="overline" color="text.secondary" fontWeight={700} sx={{ letterSpacing: 1 }}>
+                  <Typography variant="overline" color="text.secondary" fontWeight={700} sx={{ letterSpacing: 1, flex: 1 }}>
                     {section.label}
                   </Typography>
                   {openSections[section.label] ? <ExpandLess sx={{ fontSize: 16, color: 'text.secondary' }} /> : <ExpandMore sx={{ fontSize: 16, color: 'text.secondary' }} />}
@@ -144,13 +137,13 @@ const Sidebar = ({ variant = 'permanent', onNavigate }) => {
               <Collapse in={!isOpen || openSections[section.label]} timeout="auto" unmountOnExit>
                 <List disablePadding>
                   {items.map((item) => {
-                    const selected = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+                    const selected = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(`${item.path}/`));
                     const button = (
                       <ListItemButton
                         component={Link}
                         to={item.path}
                         selected={selected}
-                        onClick={handleNavigate}
+                        onClick={onNavigate}
                         sx={{
                           minHeight: 44,
                           justifyContent: isOpen ? 'initial' : 'center',
@@ -182,10 +175,10 @@ const Sidebar = ({ variant = 'permanent', onNavigate }) => {
       </Box>
 
       {/* User + logout */}
-      <Box sx={{ p: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ p: 1.5, borderTop: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
         {isOpen ? (
           <Stack direction="row" spacing={1.25} alignItems="center" justifyContent="space-between">
-            <Stack component={Link} to="/profile" direction="row" spacing={1.25} alignItems="center" sx={{ textDecoration: 'none', color: 'inherit', minWidth: 0 }}>
+            <Stack component={Link} to="/profile" onClick={onNavigate} direction="row" spacing={1.25} alignItems="center" sx={{ textDecoration: 'none', color: 'inherit', minWidth: 0 }}>
               <AppAvatar name={user?.name || 'User'} size={36} />
               <Box sx={{ minWidth: 0 }}>
                 <Typography variant="body2" fontWeight={700} noWrap>{user?.name || 'Demo User'}</Typography>
@@ -205,6 +198,32 @@ const Sidebar = ({ variant = 'permanent', onNavigate }) => {
           </Stack>
         )}
       </Box>
+    </Box>
+  );
+};
+
+/** Desktop: permanent, collapsible drawer. */
+const Sidebar = () => {
+  const theme = useTheme();
+  const sidebarOpen = useSelector((state) => state.theme.sidebarOpen);
+  const width = sidebarOpen ? DRAWER_WIDTH : MINI_DRAWER_WIDTH;
+
+  return (
+    <Drawer
+      variant="permanent"
+      sx={{
+        width,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width,
+          boxSizing: 'border-box',
+          transition: theme.transitions.create('width', { easing: theme.transitions.easing.sharp, duration: theme.transitions.duration.enteringScreen }),
+          overflowX: 'hidden',
+          bgcolor: 'background.paper',
+        },
+      }}
+    >
+      <SidebarContent isOpen={sidebarOpen} showCollapse />
     </Drawer>
   );
 };

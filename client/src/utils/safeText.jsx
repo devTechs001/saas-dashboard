@@ -29,6 +29,9 @@ export const SafeText = ({ text = '' }) => {
 };
 
 /** Strip any remaining HTML tags defensively (for plain text contexts). */
-export const stripTags = (text = '') => text.replace(/<[^>]*>/g, '');
+export const stripTags = (text = '') => {
+  const src = typeof text === 'string' ? text : '';
+  return src.replace(/<[^>]*>/g, '');
+};
 
 export default SafeText;

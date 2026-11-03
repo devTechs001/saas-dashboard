@@ -30,8 +30,8 @@ const themeSlice = createSlice({
       localStorage.setItem('accent', action.payload);
     },
     setSoundEnabled: (state, action) => {
-      state.soundEnabled = action.payload;
-      localStorage.setItem('soundEnabled', action.payload ? 'true' : 'false');
+      state.soundEnabled = Boolean(action.payload);
+      localStorage.setItem('soundEnabled', state.soundEnabled ? 'true' : 'false');
     },
     toggleSidebar: (state) => {
       state.sidebarOpen = !state.sidebarOpen;

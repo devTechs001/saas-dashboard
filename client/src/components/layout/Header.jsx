@@ -76,7 +76,7 @@ const Header = () => {
         }}
       >
         <Toolbar sx={{ gap: 1.5, minHeight: { xs: 64, sm: 70 } }}>
-          <IconButton edge="start" color="inherit" sx={{ display: { md: 'none' } }} onClick={() => dispatch(toggleMobileSidebar())}>
+          <IconButton edge="start" color="inherit" aria-label="Open navigation menu" data-testid="nav-toggle" sx={{ display: { md: 'none' } }} onClick={() => dispatch(toggleMobileSidebar())}>
             <MenuIcon />
           </IconButton>
 
@@ -198,7 +198,7 @@ const Header = () => {
           </Tooltip>
 
           {/* Profile */}
-          <IconButton onClick={(e) => setProfileAnchor(e.currentTarget)} sx={{ p: 0.5 }}>
+          <IconButton onClick={(e) => setProfileAnchor(e.currentTarget)} aria-label="Account menu" data-testid="account-menu" sx={{ p: 0.5 }}>
             <Stack direction="row" spacing={1} alignItems="center">
               <AppAvatar name={user?.name || 'Demo User'} size={34} />
             </Stack>

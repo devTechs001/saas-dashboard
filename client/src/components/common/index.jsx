@@ -8,6 +8,7 @@ import Chart from './Chart';
 import NotificationBell from './NotificationBell';
 import PageBreadcrumb from './PageBreadcrumb';
 import Splash from './Splash';
+import ErrorBoundary from './ErrorBoundary';
 
 export {
   LoadingSpinner,
@@ -20,4 +21,5 @@ export {
   NotificationBell,
   PageBreadcrumb,
   Splash,
+  ErrorBoundary,
 };

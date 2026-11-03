@@ -10,8 +10,9 @@ export const ACCENTS = {
 };
 
 export const createAppTheme = (mode = 'light', accentKey = 'indigo') => {
-  const accent = ACCENTS[accentKey] || ACCENTS.indigo;
   const dark = mode === 'dark';
+  // Guard against unknown/prototype-chain keys falling through to Object.prototype
+  const accent = Object.hasOwn(ACCENTS, accentKey) ? ACCENTS[accentKey] : ACCENTS.indigo;
 
   return createTheme({
     palette: {

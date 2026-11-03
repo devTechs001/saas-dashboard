@@ -16,11 +16,22 @@ const getCtx = () => {
   }
 };
 
-export const isSoundEnabled = () =>
-  isBrowser() && localStorage.getItem('soundEnabled') !== 'false';
+export const isSoundEnabled = () => {
+  if (!isBrowser()) return false;
+  try {
+    return localStorage.getItem('soundEnabled') !== 'false';
+  } catch {
+    return true; // storage blocked (private mode) — sound stays available
+  }
+};
 
 export const setSoundEnabled = (enabled) => {
-  if (isBrowser()) localStorage.setItem('soundEnabled', enabled ? 'true' : 'false');
+  if (!isBrowser()) return;
+  try {
+    localStorage.setItem('soundEnabled', enabled ? 'true' : 'false');
+  } catch {
+    /* storage unavailable — non-critical */
+  }
 };
 
 const playNotes = (notes, { type = 'sine', volume = 0.12, gap = 0.12, decay = 0.35 } = {}) => {
