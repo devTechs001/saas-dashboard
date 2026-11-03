@@ -1,6 +1,7 @@
 import Analytics from '../models/Analytics.js';
 import catchAsync from '../utils/catchAsync.js';
 import ApiResponse from '../utils/ApiResponse.js';
+import { emitToWorkspace } from '../config/socket.js';
 
 export const getDashboardStats = catchAsync(async (req, res) => {
   const { startDate, endDate } = req.query;
@@ -181,6 +182,14 @@ export const createAnalytics = catchAsync(async (req, res) => {
   };
 
   const analytics = await Analytics.create(analyticsData);
+
+  // Real-time dashboard sync: let open dashboards refresh their widgets.
+  emitToWorkspace(req.tenantId, 'analytics:update', {
+    type: analytics.type,
+    date: analytics.date,
+    metrics: analytics.metrics,
+  });
+
   res.status(201).json(
     ApiResponse.success({ analytics }, 'Analytics data created', 201)
   );

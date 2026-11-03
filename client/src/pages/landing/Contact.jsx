@@ -1,325 +1,196 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  Box,
-  Container,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  Button,
-  AppBar,
-  Toolbar,
-  IconButton,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  useTheme,
-  useMediaQuery,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Box, Typography, Stack, Grid, Container, Chip, Card, CardContent, Button,
+  TextField, MenuItem, useTheme, Alert, Accordion, AccordionSummary, AccordionDetails,
 } from '@mui/material';
-import {
-  Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  LocationOn as LocationOnIcon,
-  Send as SendIcon,
-  CheckCircle as CheckCircleIcon,
-} from '@mui/icons-material';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import toast from 'react-hot-toast';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import EmailIcon from '@mui/icons-material/EmailOutlined';
+import ChatIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
+import SupportAgentIcon from '@mui/icons-material/SupportAgentOutlined';
+import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutline';
+import { LandingNav, Footer } from '../../components/layout';
+import { GradientText } from '../../components/ui';
+import { faqs } from '../../data/mockData';
+
+const TOPICS = ['General enquiry', 'Sales & pricing', 'Product support', 'Partnerships', 'Security review', 'Careers'];
+
+const CHANNELS = [
+  { icon: <EmailIcon fontSize="large" />, title: 'Email us', desc: 'support@nexus.io — we reply within one business day.', action: 'Send an email' },
+  { icon: <ChatIcon fontSize="large" />, title: 'Live chat', desc: 'Chat with the team right from your dashboard, 24/5.', action: 'Open the app' },
+  { icon: <SupportAgentIcon fontSize="large" />, title: 'Book a call', desc: 'Talk solutions with a product specialist — 30 minutes.', action: 'Schedule now' },
+];
 
 const Contact = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = React.useState(false);
+  const [form, setForm] = React.useState({ name: '', email: '', company: '', topic: TOPICS[0], message: '' });
 
-  const contactInfo = [
-    { icon: <EmailIcon />, title: 'Email', content: 'support@enterprisesaas.com' },
-    { icon: <PhoneIcon />, title: 'Phone', content: '+1 (555) 123-4567' },
-    { icon: <LocationOnIcon />, title: 'Address', content: 'San Francisco, CA' },
-  ];
-
-  const validationSchema = Yup.object({
-    name: Yup.string().required('Name is required'),
-    email: Yup.string().email('Invalid email').required('Email is required'),
-    subject: Yup.string().required('Subject is required'),
-    message: Yup.string().min(10, 'Message must be at least 10 characters').required('Message is required'),
-  });
-
-  const formik = useFormik({
-    initialValues: { name: '', email: '', subject: '', message: '' },
-    validationSchema,
-    onSubmit: async (values, { setSubmitting, resetForm }) => {
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        console.log('Form submitted:', values);
-        setSubmitted(true);
-        toast.success('Message sent successfully!');
-        resetForm();
-        setTimeout(() => setSubmitted(false), 5000);
-      } catch (error) {
-        toast.error('Failed to send message.');
-      } finally {
-        setSubmitting(false);
-      }
-    },
-  });
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setSubmitted(true);
   };
 
-  const drawer = (
-    <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center', p: 2 }}>
-      <Typography variant="h6" sx={{ my: 2, fontWeight: 'bold' }}>
-        Enterprise SaaS
-      </Typography>
-      <List>
-        <ListItem button component="a" href="/">
-          <ListItemText primary="Home" />
-        </ListItem>
-        <ListItem button component="a" href="/features">
-          <ListItemText primary="Features" />
-        </ListItem>
-        <ListItem button component="a" href="/about">
-          <ListItemText primary="About" />
-        </ListItem>
-        <ListItem button component="a" href="/contact">
-          <ListItemText primary="Contact" />
-        </ListItem>
-        <ListItem button component="a" href="/login">
-          <ListItemText primary="Login" />
-        </ListItem>
-        <ListItem>
-          <Button variant="contained" fullWidth component="a" href="/register">
-            Get Started
-          </Button>
-        </ListItem>
-      </List>
-    </Box>
-  );
-
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', overflow: 'hidden' }}>
-      {/* Navigation */}
-      <AppBar position="fixed" color="transparent" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Container maxWidth="lg">
-          <Toolbar disableGutters>
-            <DashboardIcon sx={{ mr: 1, color: 'primary.main' }} />
-            <Typography variant="h6" noWrap sx={{ flexGrow: 1, fontWeight: 'bold', ml: 1 }}>
-              Enterprise SaaS
-            </Typography>
+    <Box sx={{ bgcolor: 'background.default' }}>
+      <LandingNav />
 
-            {!isMobile && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                <Button color="inherit" component="a" href="/">Home</Button>
-                <Button color="inherit" component="a" href="/features">Features</Button>
-                <Button color="inherit" component="a" href="/about">About</Button>
-                <Button color="inherit" component="a" href="/contact">Contact</Button>
-                <Button color="inherit" component="a" href="/login">Login</Button>
-                <Button variant="contained" component="a" href="/register">Get Started</Button>
-              </Box>
-            )}
-
-            <IconButton color="inherit" sx={{ display: { md: 'none' } }} onClick={handleDrawerToggle}>
-              <MenuIcon />
-            </IconButton>
-          </Toolbar>
-        </Container>
-      </AppBar>
-
-      <Drawer variant="temporary" open={mobileOpen} onClose={handleDrawerToggle} ModalProps={{ keepMounted: true }} sx={{ display: { md: 'none' }, '& .MuiDrawer-paper': { width: 240 } }}>
-        {drawer}
-      </Drawer>
-
-      {/* Hero Section - Full Viewport */}
-      <Box sx={{ 
-        height: '100vh', 
-        display: 'flex', 
-        alignItems: 'center',
-        bgcolor: 'primary.main', 
-        color: 'white',
-        pt: 8 
+      {/* Header */}
+      <Box sx={{
+        pt: { xs: 14, md: 17 }, pb: { xs: 4, md: 6 }, px: 2,
+        background: theme.palette.mode === 'dark'
+          ? 'radial-gradient(900px 420px at 50% -10%, rgba(14,165,233,0.16), transparent 65%)'
+          : 'radial-gradient(900px 420px at 50% -10%, rgba(14,165,233,0.1), transparent 65%)',
       }}>
-        <Container maxWidth="lg">
-          <Typography variant={isMobile ? 'h3' : 'h2'} fontWeight="bold" gutterBottom align="center">
-            Get in Touch
-          </Typography>
-          <Typography variant="h6" sx={{ mb: 4, opacity: 0.9 }} align="center" maxWidth="600px" mx="auto">
-            Have questions? We're here to help.
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {contactInfo.map((info, index) => (
-              <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'rgba(255,255,255,0.1)', px: 2, py: 1, borderRadius: 1 }}>
-                {info.icon}
-                <Typography variant="body2">{info.content}</Typography>
-              </Box>
-            ))}
-          </Box>
+        <Container maxWidth="md">
+          <Stack alignItems="center" spacing={2.5}>
+            <Chip label="GET IN TOUCH" color="primary" variant="outlined" sx={{ fontWeight: 700, borderRadius: 3 }} />
+            <Typography variant="h1" align="center" sx={{ fontSize: { xs: '2.25rem', md: '3.35rem' }, lineHeight: 1.12 }}>
+              Talk to a <GradientText>human</GradientText>
+            </Typography>
+            <Typography variant="h6" align="center" color="text.secondary" sx={{ maxWidth: 600, fontWeight: 400, lineHeight: 1.75 }}>
+              Questions, feedback, or a full security review — our team reads every message and responds fast.
+            </Typography>
+          </Stack>
         </Container>
       </Box>
 
-      {/* Contact Form Section - Full Viewport */}
-      <Box sx={{ 
-        minHeight: '100vh', 
-        display: 'flex',
-        alignItems: 'center',
-        py: 8,
-        bgcolor: 'background.default' 
-      }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={6}>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent sx={{ p: 4 }}>
-                  <Typography variant="h5" fontWeight="bold" gutterBottom>
-                    Send us a Message
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" mb={3}>
-                    Fill out the form below and we'll get back to you.
-                  </Typography>
-
-                  {submitted && (
-                    <Box sx={{ p: 2, mb: 3, bgcolor: 'success.light', color: 'success.dark', borderRadius: 1 }}>
-                      <Typography variant="body2">Thank you! Your message has been sent.</Typography>
-                    </Box>
-                  )}
-
-                  <Box component="form" onSubmit={formik.handleSubmit}>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label="Full Name *"
-                          name="name"
-                          value={formik.values.name}
-                          onChange={formik.handleChange}
-                          onBlur={formik.handleBlur}
-                          error={formik.touched.name && Boolean(formik.errors.name)}
-                          helperText={formik.touched.name && formik.errors.name}
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label="Email Address *"
-                          name="email"
-                          type="email"
-                          value={formik.values.email}
-                          onChange={formik.handleChange}
-                          onBlur={formik.handleBlur}
-                          error={formik.touched.email && Boolean(formik.errors.email)}
-                          helperText={formik.touched.email && formik.errors.email}
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <FormControl fullWidth error={formik.touched.subject && Boolean(formik.errors.subject)}>
-                          <InputLabel>Subject *</InputLabel>
-                          <Select
-                            name="subject"
-                            value={formik.values.subject}
-                            label="Subject *"
-                            onChange={formik.handleChange}
-                            onBlur={formik.handleBlur}
-                          >
-                            <MenuItem value="sales">Sales Inquiry</MenuItem>
-                            <MenuItem value="support">Technical Support</MenuItem>
-                            <MenuItem value="billing">Billing Question</MenuItem>
-                            <MenuItem value="other">Other</MenuItem>
-                          </Select>
-                          {formik.touched.subject && formik.errors.subject && (
-                            <Typography color="error" variant="caption" sx={{ mt: 0.5, ml: 1.5 }}>{formik.errors.subject}</Typography>
-                          )}
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label="Message *"
-                          name="message"
-                          multiline
-                          rows={4}
-                          value={formik.values.message}
-                          onChange={formik.handleChange}
-                          onBlur={formik.handleBlur}
-                          error={formik.touched.message && Boolean(formik.errors.message)}
-                          helperText={formik.touched.message && formik.errors.message}
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Button type="submit" variant="contained" size="large" fullWidth disabled={formik.isSubmitting} startIcon={<SendIcon />}>
-                          {formik.isSubmitting ? 'Sending...' : 'Send Message'}
-                        </Button>
-                      </Grid>
-                    </Grid>
+      {/* Channels */}
+      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
+        <Grid container spacing={3}>
+          {CHANNELS.map((c) => (
+            <Grid item xs={12} md={4} key={c.title}>
+              <Card sx={{ height: '100%', textAlign: 'center', transition: '0.25s', '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 16px 36px rgba(14,165,233,0.18)' } }}>
+                <CardContent sx={{ p: 3.5 }}>
+                  <Box sx={{
+                    width: 60, height: 60, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2,
+                    background: 'linear-gradient(135deg, #E0F2FE, transparent)', color: '#0284C7',
+                  }}>
+                    {c.icon}
                   </Box>
+                  <Typography variant="h6" fontWeight={700} gutterBottom>{c.title}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.75, mb: 2 }}>{c.desc}</Typography>
+                  <Button variant="outlined" size="small" sx={{ borderRadius: 2.5 }}>{c.action}</Button>
                 </CardContent>
               </Card>
             </Grid>
+          ))}
+        </Grid>
+      </Container>
 
-            <Grid item xs={12} md={6}>
-              <Box>
-                <Card sx={{ mb: 3 }}>
-                  <CardContent sx={{ p: 3 }}>
-                    <Typography variant="h6" fontWeight="bold" gutterBottom>
-                      Sales Inquiries
+      {/* Form + image */}
+      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 6 } }}>
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={6}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent sx={{ p: { xs: 3, md: 4.5 } }}>
+                {submitted ? (
+                  <Stack alignItems="center" spacing={2} sx={{ py: 8 }}>
+                    <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main' }} />
+                    <Typography variant="h5" fontWeight={800}>Message sent!</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', maxWidth: 360 }}>
+                      Thanks {form.name || 'there'} — we've received your message and will reply to{' '}
+                      {form.email || 'your inbox'} within one business day.
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" paragraph>
-                      Interested in our enterprise plans? Our sales team can help.
+                    <Button variant="outlined" onClick={() => setSubmitted(false)}>Send another</Button>
+                  </Stack>
+                ) : (
+                  <form onSubmit={handleSubmit}>
+                    <Typography variant="h5" fontWeight={800} gutterBottom>Send us a message</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      Fill in the form and the right person on our team will get back to you.
                     </Typography>
-                    <Button variant="outlined" fullWidth component="a" href="mailto:sales@enterprisesaas.com">Contact Sales</Button>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent sx={{ p: 3 }}>
-                    <Typography variant="h6" fontWeight="bold" gutterBottom>
-                      Technical Support
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" paragraph>
-                      Need help? Our support team is available 24/7 for enterprise customers.
-                    </Typography>
-                    <Button variant="outlined" fullWidth component="a" href="mailto:support@enterprisesaas.com">Get Support</Button>
-                  </CardContent>
-                </Card>
-              </Box>
-            </Grid>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField fullWidth required label="Your name" size="small" value={form.name}
+                          onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField fullWidth required type="email" label="Work email" size="small" value={form.email}
+                          onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField fullWidth label="Company" size="small" value={form.company}
+                          onChange={(e) => setForm({ ...form, company: e.target.value })} />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField fullWidth select label="Topic" size="small" value={form.topic}
+                          onChange={(e) => setForm({ ...form, topic: e.target.value })}>
+                          {TOPICS.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                        </TextField>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField fullWidth required multiline minRows={4} label="How can we help?"
+                          placeholder="Tell us a little about what you're trying to achieve…"
+                          value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <Button type="submit" fullWidth variant="contained" size="large" sx={{ borderRadius: 2.5, py: 1.4 }}>
+                          Send message
+                        </Button>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5, textAlign: 'center' }}>
+                          By submitting, you agree to our privacy policy.
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
           </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Stack spacing={3} sx={{ height: '100%' }}>
+              <Box sx={{
+                borderRadius: 4, overflow: 'hidden', border: '1px solid', borderColor: 'divider', flex: 1, minHeight: 280,
+              }}>
+                <Box
+                  component="img"
+                  src={new URL('../../assets/contact-visual.png', import.meta.url).href}
+                  alt="Nexus support team"
+                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              </Box>
+              <Card>
+                <CardContent sx={{ p: 3 }}>
+                  <Stack direction="row" spacing={2} alignItems="flex-start">
+                    <LocationOnIcon color="primary" />
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight={700}>Headquarters</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.75 }}>
+                        Riverside Green, Riverside Drive<br />Nairobi, Kenya<br />
+                        Remote hubs: San Francisco · Berlin · Toronto
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Stack>
+          </Grid>
+        </Grid>
+      </Container>
+
+      {/* FAQ */}
+      <Box sx={{ py: { xs: 5, md: 8 }, px: 2, bgcolor: 'background.paper' }}>
+        <Container maxWidth="md">
+          <Stack alignItems="center" spacing={2} sx={{ mb: 4 }}>
+            <Typography variant="h2" sx={{ fontSize: { xs: '1.8rem', md: '2.3rem' } }}>Quick answers</Typography>
+            <Typography variant="body1" color="text.secondary">Common questions, before you write in.</Typography>
+          </Stack>
+          {faqs.map((f) => (
+            <Accordion key={f.q} disableGutters sx={{ borderRadius: 3, mb: 1.5, border: '1px solid', borderColor: 'divider', '&:before': { display: 'none' } }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle1" fontWeight={700}>{f.q}</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8 }}>{f.a}</Typography>
+              </AccordionDetails>
+            </Accordion>
+          ))}
         </Container>
       </Box>
 
-      {/* CTA Section */}
-      <Box sx={{ py: 6, bgcolor: 'primary.main', color: 'white' }}>
-        <Container maxWidth="lg" textAlign="center">
-          <Typography variant="h3" fontWeight="bold" gutterBottom>
-            Ready to Get Started?
-          </Typography>
-          <Button variant="contained" size="large" sx={{ bgcolor: 'white', color: 'primary.main', mt: 2 }} component="a" href="/register">
-            Start Free Trial
-          </Button>
-        </Container>
-      </Box>
-
-      {/* Footer */}
-      <Box sx={{ py: 4, bgcolor: 'secondary.900', color: 'white' }}>
-        <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <DashboardIcon />
-            <Typography variant="h6" fontWeight="bold">Enterprise SaaS</Typography>
-          </Box>
-          <Typography variant="body2" sx={{ opacity: 0.7 }}>
-            © 2024 Enterprise SaaS Dashboard. All rights reserved.
-          </Typography>
-        </Container>
-      </Box>
+      <Footer />
     </Box>
   );
 };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (typeof window !== 'undefined' ? window.location.origin : '');
 
 export const useSocket = () => {
   const [socket, setSocket] = useState(null);
@@ -9,6 +9,10 @@ export const useSocket = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+
+    // Demo-mode sessions run without a backend — don't hammer reconnects.
+    if (!token || token.startsWith('demo-token')) return undefined;
+
     const newSocket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],

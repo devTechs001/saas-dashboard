@@ -2,7 +2,7 @@ import Customer from '../models/Customer.js';
 import catchAsync from '../utils/catchAsync.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/apiError.js';
-import { getIO } from '../config/socket.js';
+import { emitToWorkspace } from '../config/socket.js';
 
 export const getAllCustomers = catchAsync(async (req, res) => {
   const {
@@ -107,10 +107,10 @@ export const createCustomer = catchAsync(async (req, res) => {
     createdBy: req.user.id,
   });
 
-  const io = getIO();
-  if (io) {
-    io.emit('customer_created', { customer, tenantId: req.tenantId });
-  }
+  emitToWorkspace(req.tenantId, 'customer:created', {
+    customer,
+    actorId: req.user.id,
+  });
 
   res.status(201).json(
     ApiResponse.success({ customer }, 'Customer created successfully', 201)
@@ -130,10 +130,10 @@ export const updateCustomer = catchAsync(async (req, res) => {
     throw ApiError.notFound('Customer not found');
   }
 
-  const io = getIO();
-  if (io) {
-    io.emit('customer_updated', { customer, tenantId: req.tenantId });
-  }
+  emitToWorkspace(req.tenantId, 'customer:updated', {
+    customer,
+    actorId: req.user.id,
+  });
 
   res.json(ApiResponse.success({ customer }, 'Customer updated successfully'));
 });
@@ -145,10 +145,10 @@ export const deleteCustomer = catchAsync(async (req, res) => {
     throw ApiError.notFound('Customer not found');
   }
 
-  const io = getIO();
-  if (io) {
-    io.emit('customer_deleted', { customerId: req.params.id, tenantId: req.tenantId });
-  }
+  emitToWorkspace(req.tenantId, 'customer:deleted', {
+    customerId: req.params.id,
+    actorId: req.user.id,
+  });
 
   res.json(ApiResponse.success({}, 'Customer deleted successfully'));
 });

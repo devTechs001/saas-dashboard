@@ -1,0 +1,23 @@
+{
+  "name": "Nexus SaaS Platform",
+  "short_name": "Nexus",
+  "description": "Analytics, CRM, billing, collaboration & AI copilot for modern software teams.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B1020",
+  "theme_color": "#4F46E5",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

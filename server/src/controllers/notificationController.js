@@ -2,7 +2,7 @@ import Notification from '../models/Notification.js';
 import catchAsync from '../utils/catchAsync.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/apiError.js';
-import { getIO } from '../config/socket.js';
+import { emitToUser } from '../config/socket.js';
 
 export const getNotifications = catchAsync(async (req, res) => {
   const { page = 1, limit = 20, isRead } = req.query;
@@ -92,10 +92,7 @@ export const createNotification = catchAsync(async (req, res) => {
     tenantId: req.tenantId,
   });
 
-  const io = getIO();
-  if (io) {
-    io.to(userId.toString()).emit('notification', { notification });
-  }
+  emitToUser(userId.toString(), 'notification:new', { notification });
 
   res.status(201).json(
     ApiResponse.success(
@@ -121,14 +118,11 @@ export const broadcastNotification = catchAsync(async (req, res) => {
     }))
   );
 
-  const io = getIO();
-  if (io) {
-    req.body.userIds.forEach((userId) => {
-      io.to(userId.toString()).emit('notification', {
-        notification: notifications.find((n) => n.userId.toString() === userId),
-      });
+  req.body.userIds.forEach((userId) => {
+    emitToUser(userId.toString(), 'notification:new', {
+      notification: notifications.find((n) => n.userId.toString() === userId),
     });
-  }
+  });
 
   res.status(201).json(
     ApiResponse.success(

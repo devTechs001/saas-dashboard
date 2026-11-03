@@ -42,6 +42,18 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    coverPhoto: {
+      type: String,
+      default: '',
+    },
+    title: {
+      type: String,
+      default: '',
+    },
+    phone: {
+      type: String,
+      default: '',
+    },
     isActive: {
       type: Boolean,
       default: true,

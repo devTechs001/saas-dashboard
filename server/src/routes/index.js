@@ -12,6 +12,31 @@ router.get('/', (req, res) => {
   res.json(ApiResponse.success({ message: 'Enterprise SaaS Dashboard API' }));
 });
 
+// Health & readiness probes (public — used by load balancers and Render)
+router.get('/health', (req, res) => {
+  res.json(ApiResponse.success({ status: 'ok', uptime: process.uptime() }));
+});
+
+router.get('/ready', async (req, res) => {
+  const checks = { mongo: 'down', redis: 'down' };
+  try {
+    const mongoose = await import('mongoose');
+    checks.mongo = mongoose.default.connection?.readyState === 1 ? 'up' : 'down';
+  } catch { /* keep 'down' */ }
+  try {
+    const { getRedisClient } = await import('../config/redis.js');
+    const client = getRedisClient?.();
+    checks.redis = client?.isOpen ? 'up' : 'down';
+  } catch { /* keep 'down' */ }
+  const ready = Object.values(checks).every((s) => s === 'up');
+  res.status(ready ? 200 : 503).json({
+    statusCode: ready ? 200 : 503,
+    message: ready ? 'Ready' : 'Not ready',
+    success: ready,
+    data: { checks },
+  });
+});
+
 router.use('/auth', authRoutes);
 router.use('/customers', customerRoutes);
 router.use('/analytics', analyticsRoutes);

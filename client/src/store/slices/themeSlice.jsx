@@ -1,9 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const themeFromStorage = localStorage.getItem('theme');
+const accentFromStorage = localStorage.getItem('accent');
+const soundFromStorage = localStorage.getItem('soundEnabled');
 
 const initialState = {
+  // mode: 'light' | 'dark' | 'system'
   mode: themeFromStorage || 'light',
+  accent: accentFromStorage || 'indigo',
+  soundEnabled: soundFromStorage !== 'false',
   sidebarOpen: true,
   mobileSidebarOpen: false,
 };
@@ -19,6 +24,14 @@ const themeSlice = createSlice({
     setMode: (state, action) => {
       state.mode = action.payload;
       localStorage.setItem('theme', action.payload);
+    },
+    setAccent: (state, action) => {
+      state.accent = action.payload;
+      localStorage.setItem('accent', action.payload);
+    },
+    setSoundEnabled: (state, action) => {
+      state.soundEnabled = action.payload;
+      localStorage.setItem('soundEnabled', action.payload ? 'true' : 'false');
     },
     toggleSidebar: (state) => {
       state.sidebarOpen = !state.sidebarOpen;
@@ -38,6 +51,8 @@ const themeSlice = createSlice({
 export const {
   toggleMode,
   setMode,
+  setAccent,
+  setSoundEnabled,
   toggleSidebar,
   setSidebarOpen,
   toggleMobileSidebar,

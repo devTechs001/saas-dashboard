@@ -1,0 +1,609 @@
+openapi: 3.1.0
+info:
+  title: Enterprise SaaS Platform API
+  description: |
+    External API surface of the Enterprise SaaS Platform, served through the gateway
+    (planned) or directly by core-api (current dev mode).
+
+    Response envelope (all endpoints):
+      { "statusCode": int, "message": string, "data": any|null, "success": bool }
+
+    See docs/api/README.md for conventions (pagination, errors, rate limits).
+  version: 1.0.0
+  license:
+    name: MIT
+servers:
+  - url: /api/v1
+    description: Through the gateway (production / target)
+  - url: http://localhost:5000/api
+    description: core-api direct (local development today)
+tags:
+  - name: Auth
+  - name: Users
+  - name: Customers
+  - name: Analytics
+  - name: Reports
+  - name: Notifications
+  - name: Billing
+    description: Delivered by billing-service (planned)
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string, minLength: 2 }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 6 }
+      responses:
+        '201':
+          description: User created; returns token + user
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          token: { type: string }
+                          user: { $ref: '#/components/schemas/User' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate and receive a JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: JWT issued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          token: { type: string }
+                          user: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current authenticated user
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /customers:
+    get:
+      tags: [Customers]
+      summary: List customers (paginated)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema: { type: string, enum: [active, inactive, lead, churned] }
+      responses:
+        '200':
+          description: Customer page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          customers:
+                            type: array
+                            items: { $ref: '#/components/schemas/Customer' }
+                          pagination: { $ref: '#/components/schemas/Pagination' }
+    post:
+      tags: [Customers]
+      summary: "Create a customer (roles: admin, manager)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CustomerInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Customer' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /customers/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Customers]
+      summary: Get a customer (404 across tenants)
+      responses:
+        '200':
+          description: Customer
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Customer' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Customers]
+      summary: "Update a customer (roles: admin, manager)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CustomerInput' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Customer' }
+    delete:
+      tags: [Customers]
+      summary: "Delete a customer (roles: admin)"
+      responses:
+        '200': { description: Deleted }
+
+  /analytics/overview:
+    get:
+      tags: [Analytics]
+      summary: Dashboard KPIs for the tenant
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: KPI snapshot
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: e.g. revenue, activeUsers, conversionRate, churnRate
+                        additionalProperties: true
+
+  /analytics/timeseries:
+    get:
+      tags: [Analytics]
+      summary: Time-series metrics
+      parameters:
+        - name: metric
+          in: query
+          required: true
+          schema: { type: string, example: revenue }
+        - name: interval
+          in: query
+          schema: { type: string, enum: [hour, day, week, month], default: day }
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+      responses:
+        '200':
+          description: Series points
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            ts: { type: string, format: date-time }
+                            value: { type: number }
+
+  /reports:
+    get:
+      tags: [Reports]
+      summary: List reports (paginated)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Report page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          reports:
+                            type: array
+                            items: { $ref: '#/components/schemas/Report' }
+                          pagination: { $ref: '#/components/schemas/Pagination' }
+    post:
+      tags: [Reports]
+      summary: Request report generation (async)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, type]
+              properties:
+                title: { type: string }
+                type: { type: string, enum: [revenue, traffic, customers, cohort] }
+                parameters:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '202':
+          description: Accepted; generation runs asynchronously (report.generated event)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Report' }
+
+  /reports/{id}/download:
+    get:
+      tags: [Reports]
+      summary: Download a generated report (signed URL)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Redirect or JSON with a signed artifact URL
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          url: { type: string, format: uri }
+                          expiresAt: { type: string, format: date-time }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: In-app notification feed for the current user
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: unread
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Notification page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          notifications:
+                            type: array
+                            items: { $ref: '#/components/schemas/Notification' }
+                          pagination: { $ref: '#/components/schemas/Pagination' }
+
+  /notifications/{id}/read:
+    put:
+      tags: [Notifications]
+      summary: Mark a notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Marked read }
+
+  /billing/subscription:
+    get:
+      tags: [Billing]
+      summary: Current tenant subscription (planned — billing-service)
+      responses:
+        '200':
+          description: Subscription
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          subscriptionId: { type: string }
+                          planId: { type: string }
+                          status:
+                            type: string
+                            enum: [trialing, active, past_due, canceled]
+                          currentPeriodEnd: { type: string, format: date-time }
+    put:
+      tags: [Billing]
+      summary: "Change plan (roles: admin) (planned)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [planId]
+              properties:
+                planId: { type: string }
+      responses:
+        '200': { description: Subscription updated }
+
+  /billing/invoices:
+    get:
+      tags: [Billing]
+      summary: List invoices (paginated) (planned)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Invoice page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          invoices:
+                            type: array
+                            items: { $ref: '#/components/schemas/Invoice' }
+                          pagination: { $ref: '#/components/schemas/Pagination' }
+
+  /billing/webhooks/stripe:
+    post:
+      tags: [Billing]
+      summary: Stripe webhook (signature-verified, no bearer auth)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200': { description: Event acknowledged (idempotent) }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+    Search:
+      name: q
+      in: query
+      schema: { type: string }
+    From:
+      name: from
+      in: query
+      schema: { type: string, format: date }
+    To:
+      name: to
+      in: query
+      schema: { type: string, format: date }
+
+  responses:
+    BadRequest:
+      description: Validation failed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthorized:
+      description: Missing or invalid JWT
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: Not found (also returned for cross-tenant access)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Conflict:
+      description: Conflict (e.g. email already exists)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  schemas:
+    Envelope:
+      type: object
+      properties:
+        statusCode: { type: integer }
+        message: { type: string }
+        success: { type: boolean }
+        data: {}
+      required: [statusCode, message, success]
+
+    ErrorEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            data: { type: 'null' }
+            errors:
+              type: array
+              items: { type: string }
+
+    Pagination:
+      type: object
+      properties:
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+        pages: { type: integer }
+
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        role: { type: string, enum: [admin, manager, viewer] }
+        permissions:
+          type: array
+          items: { type: string }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    CustomerInput:
+      type: object
+      required: [name, email]
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        company: { type: string }
+        status: { type: string, enum: [active, inactive, lead, churned] }
+        value: { type: number }
+        tags:
+          type: array
+          items: { type: string }
+
+    Customer:
+      allOf:
+        - $ref: '#/components/schemas/CustomerInput'
+        - type: object
+          properties:
+            id: { type: string }
+            ownerId: { type: string }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+
+    Report:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        type: { type: string, enum: [revenue, traffic, customers, cohort] }
+        status: { type: string, enum: [pending, generating, ready, failed] }
+        parameters: { type: object, additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+
+    Notification:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        message: { type: string }
+        type: { type: string }
+        read: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    Invoice:
+      type: object
+      properties:
+        id: { type: string }
+        subscriptionId: { type: string }
+        amountDue: { type: string, example: "120.00" }
+        amountPaid: { type: string, example: "120.00" }
+        currency: { type: string, example: USD }
+        status: { type: string, enum: [draft, open, paid, void, uncollectible] }
+        dueAt: { type: string, format: date-time }
+        paidAt: { type: string, format: date-time }

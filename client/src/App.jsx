@@ -1,42 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider, useSelector } from 'react-redux';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Toaster } from 'react-hot-toast';
 
 import store from './store';
+import { createAppTheme } from './theme';
+import { useRealtime } from './hooks/useRealtime';
 
-// Splash Screen
-import { Splash } from './components/common';
-
-// Landing Pages
-import LandingHome from './pages/landing/Home';
-import Features from './pages/landing/Features';
-import About from './pages/landing/About';
-import Contact from './pages/landing/Contact';
-
-// Auth Pages
-import Login from './pages/Login';
-import Register from './pages/Register';
-
-// Dashboard Pages
-import Dashboard from './pages/Dashboard';
-import Customers from './pages/Customers';
-import Analytics from './pages/Analytics';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
-import Profile from './pages/Profile';
-
-// Onboarding
-import Onboarding from './pages/onboarding/Onboarding';
-
-// Layout
+// Static core (loading UX must not depend on a network chunk)
+import { Splash, LoadingSpinner } from './components/common';
 import { MainLayout } from './components/layout';
-
-// Auth Guard
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import { PERMISSIONS } from './utils/rbac';
+
+// Lazily loaded SPA pages — each route is its own chunk.
+const LandingHome = lazy(() => import('./pages/landing/Home'));
+const Features = lazy(() => import('./pages/landing/Features'));
+const About = lazy(() => import('./pages/landing/About'));
+const Contact = lazy(() => import('./pages/landing/Contact'));
+const Pricing = lazy(() => import('./pages/Pricing'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Customers = lazy(() => import('./pages/Customers'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Billing = lazy(() => import('./pages/Billing'));
+const Admin = lazy(() => import('./pages/Admin'));
+const Developers = lazy(() => import('./pages/Developers'));
+const Team = lazy(() => import('./pages/Team'));
+const Chat = lazy(() => import('./pages/Chat'));
+const AIAssistant = lazy(() => import('./pages/AIAssistant'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const Onboarding = lazy(() => import('./pages/onboarding/Onboarding'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,58 +50,63 @@ const queryClient = new QueryClient({
   },
 });
 
+// Resolves 'system' theme mode against the OS preference.
+const useResolvedMode = (mode) => {
+  const [systemDark, setSystemDark] = useState(
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : false
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e) => setSystemDark(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  return mode === 'system' ? (systemDark ? 'dark' : 'light') : mode;
+};
+
+const PageFallback = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+    <LoadingSpinner size={54} message="Loading…" />
+  </div>
+);
+
 // Splash Screen Wrapper - rendered inside providers
 function SplashWrapper({ onComplete }) {
   const mode = useSelector((state) => state.theme.mode);
-  
-  return <Splash duration={2500} onComplete={onComplete} mode={mode} />;
+  const resolved = useResolvedMode(mode);
+  return <Splash duration={2500} onComplete={onComplete} mode={resolved} />;
+}
+
+// Wraps a protected page in the app shell (sidebar + header + footer)
+function AppShell({ children, roles, permission }) {
+  return (
+    <ProtectedRoute roles={roles} permission={permission}>
+      <MainLayout>
+        <Suspense fallback={<PageFallback />}>{children}</Suspense>
+      </MainLayout>
+    </ProtectedRoute>
+  );
 }
 
 // Inner component that uses Redux hooks
 function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
   const mode = useSelector((state) => state.theme.mode);
+  const accent = useSelector((state) => state.theme.accent);
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(
     localStorage.getItem('onboardingCompleted') === 'true'
   );
 
-  const muiTheme = createTheme({
-    palette: {
-      mode,
-      primary: {
-        main: '#1976d2',
-      },
-      secondary: {
-        main: '#dc004e',
-      },
-      background: {
-        default: mode === 'dark' ? '#121212' : '#f5f5f5',
-        paper: mode === 'dark' ? '#1e1e1e' : '#ffffff',
-      },
-    },
-    typography: {
-      fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    },
-    components: {
-      MuiCard: {
-        styleOverrides: {
-          root: {
-            borderRadius: 12,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          },
-        },
-      },
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            borderRadius: 8,
-            textTransform: 'none',
-          },
-        },
-      },
-    },
-  });
+  const resolvedMode = useResolvedMode(mode);
+  const muiTheme = createAppTheme(resolvedMode, accent);
+
+  // Realtime sync: notifications + dashboard/customer refresh + sounds
+  const isLive = useRealtime();
 
   const handleSplashComplete = () => {
     setShowSplash(false);
@@ -119,96 +127,69 @@ function AppContent() {
         <CssBaseline />
         <Toaster position="top-right" />
         <BrowserRouter>
-          <Routes>
-            {/* Landing Pages */}
-            <Route path="/" element={<LandingHome />} />
-            <Route path="/features" element={<Features />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
+              {/* ============ Public / Landing (SPA routes, lazy chunks) ============ */}
+              <Route path="/" element={<LandingHome />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
 
-            {/* Auth Pages */}
-            <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
-            <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} />
+              {/* ============ Auth ============ */}
+              <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
+              <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* Onboarding */}
-            <Route
-              path="/onboarding"
-              element={
-                <ProtectedRoute>
-                  <Onboarding />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Dashboard Pages */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  {!hasCompletedOnboarding ? (
+              {/* ============ Onboarding ============ */}
+              <Route
+                path="/onboarding"
+                element={
+                  <ProtectedRoute>
                     <Onboarding onComplete={handleOnboardingComplete} />
-                  ) : (
-                    <MainLayout>
-                      <Dashboard />
-                    </MainLayout>
-                  )}
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/customers"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Customers />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Analytics />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Reports />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Settings />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Profile />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Redirects */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* ============ App (protected, role-based) ============ */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    {!hasCompletedOnboarding ? (
+                      <Suspense fallback={<PageFallback />}>
+                        <Onboarding onComplete={handleOnboardingComplete} />
+                      </Suspense>
+                    ) : (
+                      <MainLayout>
+                        <Suspense fallback={<PageFallback />}>
+                          <Dashboard isLive={isLive} />
+                        </Suspense>
+                      </MainLayout>
+                    )}
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/customers" element={<AppShell permission={PERMISSIONS.CUSTOMERS_VIEW}><Customers /></AppShell>} />
+              <Route path="/analytics" element={<AppShell permission={PERMISSIONS.ANALYTICS_VIEW}><Analytics /></AppShell>} />
+              <Route path="/reports" element={<AppShell permission={PERMISSIONS.REPORTS_VIEW}><Reports /></AppShell>} />
+              <Route path="/team" element={<AppShell permission={PERMISSIONS.TEAM_VIEW}><Team /></AppShell>} />
+              <Route path="/chat" element={<AppShell permission={PERMISSIONS.CHAT_USE}><Chat /></AppShell>} />
+              <Route path="/ai" element={<AppShell permission={PERMISSIONS.AI_USE}><AIAssistant /></AppShell>} />
+              <Route path="/billing" element={<AppShell permission={PERMISSIONS.BILLING_VIEW}><Billing /></AppShell>} />
+              <Route path="/developers" element={<AppShell permission={PERMISSIONS.DEVELOPERS_VIEW}><Developers /></AppShell>} />
+              <Route path="/admin" element={<AppShell roles={['admin']}><Admin /></AppShell>} />
+              <Route path="/settings" element={<AppShell permission={PERMISSIONS.SETTINGS_VIEW}><Settings /></AppShell>} />
+              <Route path="/profile" element={<AppShell><Profile /></AppShell>} />
+
+              {/* Legacy redirect */}
+              <Route path="/users" element={<Navigate to="/admin" replace />} />
+
+              {/* ============ 404 ============ */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>

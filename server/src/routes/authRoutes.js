@@ -11,6 +11,8 @@ const router = express.Router();
 
 router.post('/register', registerValidator, authController.register);
 router.post('/login', loginValidator, authController.login);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
 
 router.use(protect);
 
