@@ -4,6 +4,9 @@ import customerRoutes from './customerRoutes.js';
 import analyticsRoutes from './analyticsRoutes.js';
 import reportRoutes from './reportRoutes.js';
 import notificationRoutes from './notificationRoutes.js';
+import workspaceRoutes from './workspaceRoutes.js';
+import adminRoutes from './adminRoutes.js';
+import userRoutes from './userRoutes.js';
 import ApiResponse from '../utils/ApiResponse.js';
 
 const router = express.Router();
@@ -42,5 +45,8 @@ router.use('/customers', customerRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/reports', reportRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/workspaces', workspaceRoutes);
+router.use('/admin', adminRoutes);
+router.use('/users', userRoutes);
 
 export default router;

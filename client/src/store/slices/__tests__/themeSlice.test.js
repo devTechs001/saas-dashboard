@@ -11,7 +11,8 @@ describe('themeSlice', () => {
 
   it('has sensible defaults', () => {
     const state = themeReducer(undefined, { type: '@@INIT' });
-    expect(state.mode).toBe('light');
+    // Dark mode is the default theme
+    expect(state.mode).toBe('dark');
     expect(state.accent).toBe('indigo');
     expect(state.sidebarOpen).toBe(true);
     expect(state.mobileSidebarOpen).toBe(false);
@@ -19,12 +20,12 @@ describe('themeSlice', () => {
 
   it('toggles and sets mode, persisting to localStorage', () => {
     let state = themeReducer(undefined, toggleMode());
+    expect(state.mode).toBe('light'); // dark default toggles to light
+    expect(localStorage.getItem('theme')).toBe('light');
+
+    state = themeReducer(state, setMode('dark'));
     expect(state.mode).toBe('dark');
     expect(localStorage.getItem('theme')).toBe('dark');
-
-    state = themeReducer(state, setMode('light'));
-    expect(state.mode).toBe('light');
-    expect(localStorage.getItem('theme')).toBe('light');
   });
 
   it('sets accent and persists it', () => {

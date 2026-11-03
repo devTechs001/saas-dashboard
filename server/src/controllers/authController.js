@@ -1,12 +1,48 @@
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import catchAsync from '../utils/catchAsync.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/apiError.js';
 import logger from '../utils/logger.js';
+import { isDbAvailable } from '../config/database.js';
+import { memoryStore } from '../store/memoryStore.js';
+
+// In memory-store mode (no MongoDB), auth runs against the in-memory users so
+// login/register/profile work end-to-end on real HTTP endpoints.
 
 export const register = catchAsync(async (req, res) => {
   const { name, email, password, role, permissions } = req.body;
+
+  if (!isDbAvailable()) {
+    if (memoryStore.findUserByEmail(email)) {
+      throw ApiError.conflict('User with this email already exists');
+    }
+    const user = {
+      id: memoryStore.uid('usr'),
+      name: String(name || 'New user').trim().slice(0, 120),
+      email: String(email || '').toLowerCase().trim(),
+      password: bcrypt.hashSync(String(password || 'password123'), 10),
+      role: ['admin', 'manager', 'viewer'].includes(role) ? role : 'viewer',
+      permissions: permissions || ['read'],
+      tenantId: 'default',
+      title: '',
+      status: 'offline',
+      isActive: true,
+      tasksDone: 0,
+      createdAt: memoryStore.now(),
+      lastLogin: null,
+    };
+    memoryStore.db.users.push(user);
+    res.status(201).json(
+      ApiResponse.success(
+        { user: memoryStore.publicUser(user), token: `demo-user-${user.id}` },
+        'User registered successfully',
+        201
+      )
+    );
+    return;
+  }
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -44,6 +80,22 @@ export const register = catchAsync(async (req, res) => {
 
 export const login = catchAsync(async (req, res) => {
   const { email, password } = req.body;
+
+  if (!isDbAvailable()) {
+    const user = memoryStore.findUserByEmail(email);
+    if (!user || !bcrypt.compareSync(String(password || ''), user.password || '')) {
+      throw ApiError.unauthorized('Invalid credentials');
+    }
+    if (user.isActive === false) throw ApiError.unauthorized('Account is deactivated');
+    user.lastLogin = memoryStore.now();
+    res.json(
+      ApiResponse.success(
+        { user: memoryStore.publicUser(user), token: `demo-user-${user.id}` },
+        'Login successful'
+      )
+    );
+    return;
+  }
 
   const user = await User.findOne({ email }).select('+password');
   if (!user) {
@@ -83,12 +135,30 @@ export const login = catchAsync(async (req, res) => {
 });
 
 export const getProfile = catchAsync(async (req, res) => {
+  if (!isDbAvailable()) {
+    const user = memoryStore.findUser(req.user.id || req.user._id);
+    if (!user) throw ApiError.notFound('User not found');
+    res.json(ApiResponse.success({ user: memoryStore.publicUser(user) }));
+    return;
+  }
   const user = await User.findById(req.user.id);
   res.json(ApiResponse.success({ user }));
 });
 
 export const updateProfile = catchAsync(async (req, res) => {
   const { name, avatar, coverPhoto, title, phone } = req.body;
+
+  if (!isDbAvailable()) {
+    const user = memoryStore.findUser(req.user.id || req.user._id);
+    if (!user) throw ApiError.notFound('User not found');
+    if (name !== undefined) user.name = String(name).trim().slice(0, 120);
+    if (avatar !== undefined) user.avatar = avatar;
+    if (coverPhoto !== undefined) user.coverPhoto = coverPhoto;
+    if (title !== undefined) user.title = title;
+    if (phone !== undefined) user.phone = phone;
+    res.json(ApiResponse.success({ user: memoryStore.publicUser(user) }, 'Profile updated successfully'));
+    return;
+  }
 
   const user = await User.findByIdAndUpdate(
     req.user.id,

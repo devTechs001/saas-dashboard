@@ -15,7 +15,8 @@ import {
   PageHeader, SectionCard, AppAvatar, RoleChip, StatusChip, MetricDelta,
 } from '../components/ui';
 import { BarTrendChart } from '../components/charts';
-import { tasks, activityFeed, teamMembers } from '../data/mockData';
+import { tasks as mockTasks, activityFeed as mockActivity, teamMembers as mockMembers } from '../data/mockData';
+import { workspaceService } from '../services';
 import { formatRelative, formatDate } from '../utils/format';
 import { SafeText } from '../utils/safeText';
 import { can, PERMISSIONS } from '../utils/rbac';
@@ -54,6 +55,52 @@ const Team = () => {
   const user = useSelector((state) => state.auth.user);
   const manage = can(user, PERMISSIONS.TEAM_MANAGE);
 
+  // Real API data for the primary workspace (falls back to demo data offline).
+  const [board, setBoard] = React.useState(mockTasks);
+  const [members, setMembers] = React.useState(mockMembers);
+  const [activity, setActivity] = React.useState(mockActivity);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const wsRes = await workspaceService.getAll();
+        const ws = wsRes?.data?.workspaces?.[0];
+        if (!ws || cancelled) return;
+        const [m, t, a] = await Promise.all([
+          workspaceService.getMembers(ws.id),
+          workspaceService.getTasks(ws.id),
+          workspaceService.getActivity(ws.id),
+        ]);
+        if (cancelled) return;
+        const roleMap = { owner: 'admin', admin: 'admin', member: 'manager', guest: 'viewer' };
+        setMembers((m?.data?.members || []).map((x) => ({
+          id: x.userId, name: x.name, email: x.email,
+          role: roleMap[x.role] || 'manager', title: x.title || 'Member',
+          status: x.status || 'offline', tasksDone: 0, location: '',
+        })));
+        const grouped = { todo: [], inProgress: [], done: [] };
+        for (const task of t?.data?.tasks || []) {
+          const key = task.status === 'done' ? 'done' : task.status === 'todo' ? 'todo' : 'inProgress';
+          grouped[key].push({
+            id: task.id, title: task.title, assignee: task.assigneeName || 'Unassigned',
+            priority: task.priority, due: task.dueDate, tag: task.tag || 'general',
+          });
+        }
+        setBoard(grouped);
+        setActivity((a?.data?.activity || []).map((x) => ({
+          id: x.id, actor: x.actor, type: 'user', text: `${x.action} <b>${x.target}</b>`, time: x.time,
+        })));
+      } catch {
+        // API unreachable — keep the demo data already in state.
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const activeCount = board.todo.length + board.inProgress.length;
+
   return (
     <Box>
       <PageHeader
@@ -70,7 +117,7 @@ const Team = () => {
         <Grid item xs={12} lg={8}>
           <SectionCard title="Team output" subtitle="Tasks completed per member this quarter">
             <BarTrendChart
-              data={teamMembers.map((m) => ({ name: m.name.split(' ')[0], done: m.tasksDone }))}
+              data={members.map((m) => ({ name: m.name.split(' ')[0], done: m.tasksDone }))}
               xKey="name"
               height={240}
               series={[{ key: 'done', name: 'Tasks done', color: '#4F46E5' }]}
@@ -108,7 +155,7 @@ const Team = () => {
       {/* Kanban board */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 3.5, mb: 1.5 }}>
         <Typography variant="h5" fontWeight={800}>Task board</Typography>
-        <Chip icon={<BoltIcon sx={{ fontSize: '16px !important' }} />} label="8 active tasks" variant="outlined" />
+        <Chip icon={<BoltIcon sx={{ fontSize: '16px !important' }} />} label={`${activeCount} active tasks`} variant="outlined" />
       </Stack>
       <Grid container spacing={2.5}>
         {COLUMNS.map((col) => (
@@ -121,11 +168,11 @@ const Team = () => {
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: col.color }} />
                   <Typography variant="subtitle2" fontWeight={800}>{col.title}</Typography>
-                  <Chip size="small" label={tasks[col.key].length} sx={{ height: 20, fontSize: 11, fontWeight: 700 }} />
+                  <Chip size="small" label={board[col.key].length} sx={{ height: 20, fontSize: 11, fontWeight: 700 }} />
                 </Stack>
                 <IconButton size="small"><AddIcon fontSize="small" /></IconButton>
               </Stack>
-              {tasks[col.key].map((t) => <TaskCard key={t.id} task={t} manage={manage} />)}
+              {board[col.key].map((t) => <TaskCard key={t.id} task={t} manage={manage} />)}
             </Box>
           </Grid>
         ))}
@@ -136,7 +183,7 @@ const Team = () => {
         <Grid item xs={12} md={7}>
           <SectionCard title="Team members" subtitle="Roles and status" contentSx={{ pt: 1 }}>
             <List disablePadding>
-              {teamMembers.map((m) => (
+              {members.map((m) => (
                 <ListItem key={m.id} disablePadding sx={{ py: 1 }}>
                   <ListItemAvatar sx={{ minWidth: 52 }}>
                     <AppAvatar name={m.name} size={42} />
@@ -157,7 +204,7 @@ const Team = () => {
         <Grid item xs={12} md={5}>
           <SectionCard title="Activity feed" subtitle="Everything happening in your workspace" contentSx={{ pt: 1 }}>
             <List disablePadding>
-              {activityFeed.map((a) => (
+              {activity.map((a) => (
                 <ListItem key={a.id} disablePadding sx={{ py: 0.9, alignItems: 'flex-start' }}>
                   <ListItemAvatar sx={{ minWidth: 44, mt: 0.5 }}>
                     <Avatar sx={{ width: 34, height: 34, bgcolor: 'action.hover', color: 'text.primary', fontSize: 14, fontWeight: 700 }}>

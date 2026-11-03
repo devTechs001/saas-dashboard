@@ -28,8 +28,95 @@ import {
   kpis, revenueSeries, deviceBreakdown, trafficSeries, trafficSources,
   activityFeed, goals, aiInsights,
 } from '../data/mockData';
-import { formatCurrency, formatCompact, formatRelative } from '../utils/format';
+import { workspaceService } from '../services';
+import { formatCurrency, formatCompact, formatRelative, formatDate } from '../utils/format';
 import { SafeText } from '../utils/safeText';
+
+// Live collaboration strip fed by the real workspace API (renders nothing extra offline).
+const WorkspacePulse = () => {
+  const [workspaces, setWorkspaces] = React.useState([]);
+  const [activity, setActivity] = React.useState([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await workspaceService.getAll();
+        if (cancelled) return;
+        const list = res?.data?.workspaces || [];
+        setWorkspaces(list);
+        const acts = await Promise.all(
+          list.slice(0, 3).map((w) => workspaceService.getActivity(w.id, { limit: 3 }).catch(() => null))
+        );
+        if (cancelled) return;
+        setActivity(
+          acts.flatMap((a) => a?.data?.activity || []).slice(0, 5)
+        );
+      } catch {
+        /* API offline — strip stays hidden */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (workspaces.length === 0) return null;
+
+  return (
+    <Grid container spacing={2.5}>
+      <Grid item xs={12} lg={8}>
+        <SectionCard
+          title="Workspace pulse"
+          subtitle="Live from the collaboration API"
+          action={<Chip size="small" label={`${workspaces.length} workspaces`} variant="outlined" color="primary" />}
+        >
+          <Grid container spacing={1.5}>
+            {workspaces.map((w) => (
+              <Grid item xs={12} sm={4} key={w.id}>
+                <Box sx={{ p: 1.75, borderRadius: 2.5, border: '1px solid', borderColor: 'divider', height: '100%' }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="body2" fontWeight={800}>{w.name}</Typography>
+                    <Chip size="small" label={w.visibility === 'public' ? 'Public' : 'Private'} variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                  </Stack>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, minHeight: 32 }}>
+                    {w.description}
+                  </Typography>
+                  <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                    <Chip size="small" label={`${w.memberCount} members`} sx={{ height: 22, fontSize: '0.72rem' }} />
+                    <Chip size="small" label={`${w.openTasks} open`} color="primary" variant="outlined" sx={{ height: 22, fontSize: '0.72rem' }} />
+                    <Chip size="small" label={`${w.doneTasks} done`} color="success" variant="outlined" sx={{ height: 22, fontSize: '0.72rem' }} />
+                  </Stack>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        </SectionCard>
+      </Grid>
+      <Grid item xs={12} lg={4}>
+        <SectionCard title="Team activity" subtitle="Across your workspaces" contentSx={{ pt: 1 }}>
+          <List disablePadding>
+            {activity.map((a) => (
+              <ListItem key={a.id} disablePadding sx={{ py: 0.85 }}>
+                <ListItemAvatar sx={{ minWidth: 40 }}>
+                  <AppAvatar name={a.actor} size={30} />
+                </ListItemAvatar>
+                <ListItemText
+                  primary={<Typography variant="body2"><b>{a.actor}</b> {a.action} <b>{a.target}</b></Typography>}
+                  secondary={formatRelative(a.time)}
+                  secondaryTypographyProps={{ variant: 'caption' }}
+                />
+              </ListItem>
+            ))}
+            {activity.length === 0 && (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                No recent activity — yet.
+              </Typography>
+            )}
+          </List>
+        </SectionCard>
+      </Grid>
+    </Grid>
+  );
+};
 
 const ACTIVITY_ICONS = {
   deal: { icon: <AttachMoneyIcon fontSize="small" />, color: '#059669' },
@@ -110,6 +197,9 @@ const Dashboard = ({ isLive = false }) => {
           <KpiCard label="Churn rate" value={`${kpis.churn.value}%`} delta={kpis.churn.delta} icon={<TrendingDownIcon />} color="#E11D48" />
         </Grid>
       </Grid>
+
+      {/* Live workspace collaboration pulse (real API) */}
+      <Box sx={{ mt: 2.5 }}><WorkspacePulse /></Box>
 
       {/* Main charts row */}
       <Grid container spacing={2.5} sx={{ mt: 0 }}>

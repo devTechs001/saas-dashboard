@@ -178,3 +178,120 @@ export const notificationService = {
     return response.data;
   },
 };
+
+// ===== Workspaces (collaboration) =====
+
+export const workspaceService = {
+  getAll: async (params = {}) => {
+    const response = await api.get('/workspaces', { params });
+    return response.data;
+  },
+
+  getById: async (id) => {
+    const response = await api.get(`/workspaces/${id}`);
+    return response.data;
+  },
+
+  create: async (data) => {
+    const response = await api.post('/workspaces', data);
+    return response.data;
+  },
+
+  update: async (id, data) => {
+    const response = await api.put(`/workspaces/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id) => {
+    const response = await api.delete(`/workspaces/${id}`);
+    return response.data;
+  },
+
+  getMembers: async (id) => {
+    const response = await api.get(`/workspaces/${id}/members`);
+    return response.data;
+  },
+
+  inviteMember: async (id, data) => {
+    const response = await api.post(`/workspaces/${id}/members`, data);
+    return response.data;
+  },
+
+  updateMemberRole: async (id, userId, role) => {
+    const response = await api.put(`/workspaces/${id}/members/${userId}`, { role });
+    return response.data;
+  },
+
+  removeMember: async (id, userId) => {
+    const response = await api.delete(`/workspaces/${id}/members/${userId}`);
+    return response.data;
+  },
+
+  getTasks: async (id, params = {}) => {
+    const response = await api.get(`/workspaces/${id}/tasks`, { params });
+    return response.data;
+  },
+
+  createTask: async (id, data) => {
+    const response = await api.post(`/workspaces/${id}/tasks`, data);
+    return response.data;
+  },
+
+  updateTask: async (id, taskId, data) => {
+    const response = await api.put(`/workspaces/${id}/tasks/${taskId}`, data);
+    return response.data;
+  },
+
+  deleteTask: async (id, taskId) => {
+    const response = await api.delete(`/workspaces/${id}/tasks/${taskId}`);
+    return response.data;
+  },
+
+  getActivity: async (id, params = {}) => {
+    const response = await api.get(`/workspaces/${id}/activity`, { params });
+    return response.data;
+  },
+};
+
+// ===== Admin console =====
+
+export const adminService = {
+  getStats: async () => {
+    const response = await api.get('/admin/stats');
+    return response.data;
+  },
+
+  getUsers: async (params = {}) => {
+    const response = await api.get('/admin/users', { params });
+    return response.data;
+  },
+
+  inviteUser: async (data) => {
+    const response = await api.post('/admin/users', data);
+    return response.data;
+  },
+
+  updateUser: async (id, data) => {
+    const response = await api.put(`/admin/users/${id}`, data);
+    return response.data;
+  },
+
+  deleteUser: async (id) => {
+    const response = await api.delete(`/admin/users/${id}`);
+    return response.data;
+  },
+
+  getAuditLogs: async (params = {}) => {
+    const response = await api.get('/admin/audit-logs', { params });
+    return response.data;
+  },
+};
+
+// ===== Users ("other users' dashboards") =====
+
+export const userService = {
+  getDashboard: async (id) => {
+    const response = await api.get(`/users/${id}/dashboard`);
+    return response.data;
+  },
+};

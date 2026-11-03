@@ -5,8 +5,8 @@ const accentFromStorage = localStorage.getItem('accent');
 const soundFromStorage = localStorage.getItem('soundEnabled');
 
 const initialState = {
-  // mode: 'light' | 'dark' | 'system'
-  mode: themeFromStorage || 'light',
+  // mode: 'light' | 'dark' | 'system' — dark is the default theme
+  mode: themeFromStorage || 'dark',
   accent: accentFromStorage || 'indigo',
   soundEnabled: soundFromStorage !== 'false',
   sidebarOpen: true,
