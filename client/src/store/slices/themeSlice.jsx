@@ -1,9 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const themeFromStorage = localStorage.getItem('theme');
+const accentFromStorage = localStorage.getItem('accent');
 
 const initialState = {
   mode: themeFromStorage || 'light',
+  accent: accentFromStorage || 'indigo',
   sidebarOpen: true,
   mobileSidebarOpen: false,
 };
@@ -19,6 +21,10 @@ const themeSlice = createSlice({
     setMode: (state, action) => {
       state.mode = action.payload;
       localStorage.setItem('theme', action.payload);
+    },
+    setAccent: (state, action) => {
+      state.accent = action.payload;
+      localStorage.setItem('accent', action.payload);
     },
     toggleSidebar: (state) => {
       state.sidebarOpen = !state.sidebarOpen;
@@ -38,6 +44,7 @@ const themeSlice = createSlice({
 export const {
   toggleMode,
   setMode,
+  setAccent,
   toggleSidebar,
   setSidebarOpen,
   toggleMobileSidebar,

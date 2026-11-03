@@ -1,249 +1,270 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Paper,
+  Box, Typography, Grid, Stack, Chip, Tabs, Tab, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Paper, LinearProgress, MenuItem, TextField,
 } from '@mui/material';
-import { PageBreadcrumb, LoadingSpinner, Chart } from '../components/common';
-import { useDashboardStats, useDeviceBreakdown, useTopPages } from '../hooks';
+import {
+  PageHeader, SectionCard, KpiCard,
+} from '../components/ui';
+import {
+  AreaTrendChart, DonutChart, BarTrendChart, FunnelBars, RadialGauge, HorizontalBarList,
+} from '../components/charts';
+import {
+  kpis, trafficSeries, deviceBreakdown, trafficSources, revenueByPlan,
+  funnel, cohort, topPages, revenueSeries,
+} from '../data/mockData';
+import { formatCurrency, formatCompact, formatNumber } from '../utils/format';
+
+const TabPanel = ({ value, index, children }) => (
+  <Box hidden={value !== index} sx={{ pt: 2.5 }}>{value === index && children}</Box>
+);
+
+const retentionColor = (v) => {
+  if (v === 0) return 'transparent';
+  const a = Math.max(0.08, v / 130);
+  return `rgba(79,70,229,${a})`;
+};
 
 const Analytics = () => {
-  const [dateRange, setDateRange] = useState('30');
-
-  const { data: statsData, isLoading } = useDashboardStats({
-    startDate: new Date(Date.now() - parseInt(dateRange) * 24 * 60 * 60 * 1000).toISOString(),
-    endDate: new Date().toISOString(),
-  });
-
-  const { data: deviceData } = useDeviceBreakdown();
-  const { data: topPages } = useTopPages(10);
-
-  if (isLoading) {
-    return <LoadingSpinner message="Loading analytics..." />;
-  }
-
-  const chartData = statsData?.chartData?.map((item) => ({
-    ...item,
-    date: new Date(item.date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    }),
-  }));
+  const [tab, setTab] = React.useState(0);
+  const [range, setRange] = React.useState('30');
 
   return (
     <Box>
-      <PageBreadcrumb items={[{ label: 'Analytics' }]} />
-
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" fontWeight="bold">
-          Analytics
-        </Typography>
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Time Range</InputLabel>
-          <Select
-            value={dateRange}
-            label="Time Range"
-            onChange={(e) => setDateRange(e.target.value)}
-          >
+      <PageHeader
+        title="Analytics"
+        subtitle="Understand acquisition, activation, and revenue in one place."
+        actions={[
+          <TextField key="range" select size="small" value={range} onChange={(e) => setRange(e.target.value)} sx={{ minWidth: 160, borderRadius: 2 }}>
             <MenuItem value="7">Last 7 days</MenuItem>
-            <MenuItem value="14">Last 14 days</MenuItem>
             <MenuItem value="30">Last 30 days</MenuItem>
             <MenuItem value="90">Last 90 days</MenuItem>
-          </Select>
-        </FormControl>
+            <MenuItem value="365">Last 12 months</MenuItem>
+          </TextField>,
+          <Chip key="live" label="● Live" color="success" variant="outlined" sx={{ fontWeight: 700 }} />,
+        ]}
+      />
+
+      {/* Top KPIs */}
+      <Grid container spacing={2.5}>
+        <Grid item xs={12} sm={6} lg={3}>
+          <KpiCard label="Total revenue" value={formatCurrency(revenueSeries[11].revenue)} delta={12.4} hint="vs previous month" />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={3}>
+          <KpiCard label="Unique visitors" value={formatCompact(116200)} delta={9.2} hint="vs previous month" />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={3}>
+          <KpiCard label="Avg. session" value="4m 12s" delta={3.8} hint="vs previous month" />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={3}>
+          <KpiCard label="Revenue per user" value={formatCurrency(3.38, 'USD', 2)} delta={-1.4} hint="vs previous month" />
+        </Grid>
+      </Grid>
+
+      {/* Tabs */}
+      <Box sx={{ mt: 3, borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto">
+          <Tab label="Overview" />
+          <Tab label="Funnels & cohorts" />
+          <Tab label="Audience" />
+          <Tab label="Revenue" />
+        </Tabs>
       </Box>
 
-      {/* Key Metrics */}
-      <Grid container spacing={3} mb={3}>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Total Page Views
-              </Typography>
-              <Typography variant="h3" fontWeight="bold">
-                {statsData?.totals?.pageViews?.toLocaleString() || 0}
-              </Typography>
-              <Typography
-                variant="body2"
-                color={
-                  (statsData?.growth?.pageViews || 0) >= 0 ? 'success.main' : 'error.main'
-                }
-              >
-                {(statsData?.growth?.pageViews || 0) >= 0 ? '↑' : '↓'}{' '}
-                {Math.abs(statsData?.growth?.pageViews || 0).toFixed(1)}%
-              </Typography>
-            </CardContent>
-          </Card>
+      {/* ===== Overview ===== */}
+      <TabPanel value={tab} index={0}>
+        <Grid container spacing={2.5}>
+          <Grid item xs={12} lg={8}>
+            <SectionCard title="Traffic trend" subtitle="Visitors and page views, last 30 days">
+              <AreaTrendChart
+                data={trafficSeries}
+                xKey="date"
+                height={300}
+                series={[
+                  { key: 'visitors', name: 'Visitors', color: '#4F46E5' },
+                  { key: 'pageViews', name: 'Page views', color: '#0EA5E9' },
+                ]}
+                formatValue={(v) => formatCompact(v)}
+              />
+            </SectionCard>
+          </Grid>
+          <Grid item xs={12} lg={4}>
+            <SectionCard title="Device breakdown" subtitle="Share of sessions">
+              <DonutChart data={deviceBreakdown} centerValue="312k" centerLabel="sessions" height={250} innerRadius={64} />
+            </SectionCard>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <SectionCard title="Traffic sources" subtitle="Where your visitors come from">
+              <HorizontalBarList data={trafficSources} height={280} formatValue={(v) => formatCompact(v)} />
+            </SectionCard>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <SectionCard title="Top pages" subtitle="Most visited content">
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 700 }}>Page</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Views</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Avg. time</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Bounce</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {topPages.map((p) => (
+                      <TableRow key={p.path} hover>
+                        <TableCell><Typography variant="body2" fontWeight={600}>{p.path}</Typography></TableCell>
+                        <TableCell align="right">{formatNumber(p.views)}</TableCell>
+                        <TableCell align="right">{p.avgTime}</TableCell>
+                        <TableCell align="right">
+                          <Chip size="small" label={`${p.bounce}%`} color={p.bounce > 35 ? 'warning' : 'default'} variant={p.bounce > 35 ? 'filled' : 'outlined'} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </SectionCard>
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Unique Visitors
-              </Typography>
-              <Typography variant="h3" fontWeight="bold">
-                {statsData?.totals?.uniqueVisitors?.toLocaleString() || 0}
-              </Typography>
-              <Typography
-                variant="body2"
-                color={
-                  (statsData?.growth?.uniqueVisitors || 0) >= 0 ? 'success.main' : 'error.main'
-                }
-              >
-                {(statsData?.growth?.uniqueVisitors || 0) >= 0 ? '↑' : '↓'}{' '}
-                {Math.abs(statsData?.growth?.uniqueVisitors || 0).toFixed(1)}%
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Total Sessions
-              </Typography>
-              <Typography variant="h3" fontWeight="bold">
-                {statsData?.totals?.sessions?.toLocaleString() || 0}
-              </Typography>
-              <Typography
-                variant="body2"
-                color={
-                  (statsData?.growth?.sessions || 0) >= 0 ? 'success.main' : 'error.main'
-                }
-              >
-                {(statsData?.growth?.sessions || 0) >= 0 ? '↑' : '↓'}{' '}
-                {Math.abs(statsData?.growth?.sessions || 0).toFixed(1)}%
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Conversions
-              </Typography>
-              <Typography variant="h3" fontWeight="bold">
-                {statsData?.totals?.conversions?.toLocaleString() || 0}
-              </Typography>
-              <Typography
-                variant="body2"
-                color={
-                  (statsData?.growth?.conversions || 0) >= 0 ? 'success.main' : 'error.main'
-                }
-              >
-                {(statsData?.growth?.conversions || 0) >= 0 ? '↑' : '↓'}{' '}
-                {Math.abs(statsData?.growth?.conversions || 0).toFixed(1)}%
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      </TabPanel>
 
-      {/* Charts */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Traffic Trends
-            </Typography>
-            <Chart
-              type="area"
-              data={chartData || []}
-              xKey="date"
-              yKeys={[
-                { dataKey: 'pageViews', name: 'Page Views', stroke: '#1976d2', fill: '#1976d2' },
-                { dataKey: 'uniqueVisitors', name: 'Visitors', stroke: '#2e7d32', fill: '#2e7d32' },
-                { dataKey: 'sessions', name: 'Sessions', stroke: '#f57c00', fill: '#f57c00' },
-              ]}
-              height={350}
-            />
-          </Paper>
+      {/* ===== Funnels & cohorts ===== */}
+      <TabPanel value={tab} index={1}>
+        <Grid container spacing={2.5}>
+          <Grid item xs={12} md={6}>
+            <SectionCard title="Conversion funnel" subtitle="Visitor → renewed, current quarter">
+              <FunnelBars data={funnel} />
+            </SectionCard>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <SectionCard title="Activation health" subtitle="Share of signups reaching key milestones">
+              <Grid container spacing={2} sx={{ pt: 1 }}>
+                <Grid item xs={6}><RadialGauge value={72} label="Connected data" color="#4F46E5" /></Grid>
+                <Grid item xs={6}><RadialGauge value={58} label="Invited team" color="#0EA5E9" /></Grid>
+                <Grid item xs={6}><RadialGauge value={41} label="First report" color="#34D399" /></Grid>
+                <Grid item xs={6}><RadialGauge value={86} label="Week-1 retention" color="#F59E0B" /></Grid>
+              </Grid>
+            </SectionCard>
+          </Grid>
+          <Grid item xs={12}>
+            <SectionCard title="Cohort retention" subtitle="Percentage of each signup cohort still active after N months">
+              <TableContainer sx={{ overflowX: 'auto' }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 700 }}>Cohort</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>Size</TableCell>
+                      {[0, 1, 2, 3, 4, 5].map((m) => (
+                        <TableCell key={m} align="center" sx={{ fontWeight: 700 }}>M{m}</TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {cohort.map((c) => (
+                      <TableRow key={c.cohort} hover>
+                        <TableCell sx={{ fontWeight: 700 }}>{c.cohort} 2026</TableCell>
+                        <TableCell align="center">{c.size}</TableCell>
+                        {c.retention.map((v, i) => (
+                          <TableCell key={i} align="center" sx={{ bgcolor: retentionColor(v), color: v > 55 ? '#fff' : 'text.primary', fontWeight: v ? 700 : 400 }}>
+                            {v ? `${v}%` : '—'}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </SectionCard>
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Device Distribution
-            </Typography>
-            <Chart
-              type="pie"
-              data={[
-                { name: 'Desktop', value: deviceData?.desktop?.count || 0 },
-                { name: 'Mobile', value: deviceData?.mobile?.count || 0 },
-                { name: 'Tablet', value: deviceData?.tablet?.count || 0 },
-              ]}
-              xKey="name"
-              yKeys={['value']}
-              height={350}
-            />
-          </Paper>
+      </TabPanel>
+
+      {/* ===== Audience ===== */}
+      <TabPanel value={tab} index={2}>
+        <Grid container spacing={2.5}>
+          <Grid item xs={12} md={6}>
+            <SectionCard title="Visitors & signups" subtitle="Daily, last 30 days">
+              <AreaTrendChart
+                data={trafficSeries}
+                xKey="date"
+                height={300}
+                series={[
+                  { key: 'visitors', name: 'Visitors', color: '#4F46E5' },
+                  { key: 'signups', name: 'Signups', color: '#34D399' },
+                ]}
+                formatValue={(v) => formatCompact(v)}
+              />
+            </SectionCard>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <SectionCard title="New vs returning" subtitle="Share of sessions">
+              <DonutChart
+                data={[
+                  { name: 'New visitors', value: 62, color: '#4F46E5' },
+                  { name: 'Returning', value: 38, color: '#0EA5E9' },
+                ]}
+                centerValue="62%"
+                centerLabel="new"
+                height={300}
+                innerRadius={72}
+              />
+            </SectionCard>
+          </Grid>
+          <Grid item xs={12}>
+            <SectionCard title="Engagement by segment" subtitle="Average session duration (minutes)">
+              <BarTrendChart
+                data={[
+                  { segment: 'Enterprise', minutes: 8.2 },
+                  { segment: 'Business', minutes: 6.4 },
+                  { segment: 'Pro', minutes: 4.9 },
+                  { segment: 'Starter', minutes: 3.1 },
+                  { segment: 'Trial', minutes: 2.2 },
+                ]}
+                xKey="segment"
+                height={280}
+                series={[{ key: 'minutes', name: 'Avg. minutes', color: '#7C3AED' }]}
+              />
+            </SectionCard>
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Revenue Over Time
-            </Typography>
-            <Chart
-              type="bar"
-              data={chartData || []}
-              xKey="date"
-              yKeys={[{ dataKey: 'revenue', name: 'Revenue', fill: '#2e7d32' }]}
-              height={300}
-            />
-          </Paper>
+      </TabPanel>
+
+      {/* ===== Revenue ===== */}
+      <TabPanel value={tab} index={3}>
+        <Grid container spacing={2.5}>
+          <Grid item xs={12} lg={8}>
+            <SectionCard title="Monthly recurring revenue" subtitle="MRR with subscription count">
+              <AreaTrendChart
+                data={revenueSeries}
+                xKey="month"
+                height={300}
+                series={[
+                  { key: 'revenue', name: 'MRR', color: '#4F46E5' },
+                  { key: 'expenses', name: 'Expenses', color: '#F43F5E' },
+                ]}
+                formatValue={(v) => formatCompact(v)}
+              />
+            </SectionCard>
+          </Grid>
+          <Grid item xs={12} lg={4}>
+            <SectionCard title="Revenue by plan" subtitle="Current month">
+              <DonutChart data={revenueByPlan} height={300} innerRadius={70} centerValue={formatCurrency(84230)} centerLabel="total MRR" />
+            </SectionCard>
+          </Grid>
+          <Grid item xs={12}>
+            <SectionCard title="Subscriptions growth" subtitle="Active subscriptions, last 12 months">
+              <BarTrendChart
+                data={revenueSeries}
+                xKey="month"
+                height={280}
+                series={[{ key: 'subscriptions', name: 'Subscriptions', color: '#0EA5E9' }]}
+                formatValue={(v) => formatCompact(v)}
+              />
+            </SectionCard>
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Top Pages
-            </Typography>
-            <Box>
-              {topPages?.map((page, index) => (
-                <Box
-                  key={page.path}
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  py={1}
-                  borderBottom={index < topPages.length - 1 ? '1px solid' : 'none'}
-                  borderColor="divider"
-                >
-                  <Box display="flex" alignItems="center" gap={2}>
-                    <Box
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        bgcolor: index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? '#cd7f32' : 'grey.300',
-                        color: index < 3 ? '#000' : '#fff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 12,
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      {index + 1}
-                    </Box>
-                    <Typography variant="body2">{page.path}</Typography>
-                  </Box>
-                  <Typography variant="body2" fontWeight="bold">
-                    {page.views.toLocaleString()} views
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
+      </TabPanel>
     </Box>
   );
 };
