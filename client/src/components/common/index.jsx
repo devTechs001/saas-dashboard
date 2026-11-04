@@ -9,6 +9,7 @@ import NotificationBell from './NotificationBell';
 import PageBreadcrumb from './PageBreadcrumb';
 import Splash from './Splash';
 import ErrorBoundary from './ErrorBoundary';
+import MaintenanceBanner from './MaintenanceBanner';
 
 export {
   LoadingSpinner,
@@ -22,4 +23,5 @@ export {
   PageBreadcrumb,
   Splash,
   ErrorBoundary,
+  MaintenanceBanner,
 };

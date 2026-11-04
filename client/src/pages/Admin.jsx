@@ -4,7 +4,7 @@ import {
   TableContainer, TableHead, TableRow, IconButton, Menu, MenuItem, TextField,
   InputAdornment, Tabs, Tab, Card, CardContent, List, ListItem, ListItemIcon,
   ListItemText, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
-  Alert, LinearProgress, Divider,
+  Alert, LinearProgress, Divider, Switch, FormControlLabel, RadioGroup, Radio, FormControl, FormLabel,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -21,7 +21,7 @@ import { useSelector } from 'react-redux';
 import { PageHeader, SectionCard, KpiCard, AppAvatar, RoleChip, StatusChip, EmptyState } from '../components/ui';
 import { DonutChart, BarTrendChart } from '../components/charts';
 import { platformUsers } from '../data/mockData';
-import { adminService, userService } from '../services';
+import { adminService, userService, maintenanceService } from '../services';
 import { formatRelative, formatDate, formatNumber } from '../utils/format';
 import { hasRole, ROLES, permissionsForRole, ROLE_LABELS, PERMISSIONS } from '../utils/rbac';
 
@@ -52,6 +52,12 @@ const Admin = () => {
   const [dashData, setDashData] = React.useState(null);
   const [dashLoading, setDashLoading] = React.useState(false);
 
+  // Maintenance control (levels + restrictions while repairs are in progress)
+  const [maint, setMaint] = React.useState({
+    level: 'none', allowLogin: true, allowRegistration: true, allowWrites: true, message: '', until: '',
+  });
+  const [maintSaving, setMaintSaving] = React.useState(false);
+
   // Real API data (falls back to demo data when the API is unreachable).
   const [users, setUsers] = React.useState([]);
   const [auditLogs, setAuditLogs] = React.useState([]);
@@ -62,14 +68,25 @@ const Admin = () => {
   const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const [u, a, s] = await Promise.all([
+      const [u, a, s, m] = await Promise.all([
         adminService.getUsers({ limit: 50 }),
         adminService.getAuditLogs({ limit: 25 }),
         adminService.getStats(),
+        maintenanceService.getStatus().catch(() => null),
       ]);
       setUsers(u?.data?.users || []);
       setAuditLogs(a?.data?.logs || []);
       setStats(s?.data || null);
+      if (m?.data) {
+        setMaint({
+          level: m.data.level || 'none',
+          allowLogin: m.data.allowLogin !== false,
+          allowRegistration: m.data.allowRegistration !== false,
+          allowWrites: m.data.allowWrites !== false,
+          message: m.data.message || '',
+          until: m.data.until ? String(m.data.until).slice(0, 16) : '',
+        });
+      }
       setOffline(false);
     } catch {
       setUsers(platformUsers.map((p) => ({ ...p, isActive: true, createdAt: '2026-06-14' })));
@@ -149,6 +166,24 @@ const Admin = () => {
     setDashLoading(false);
   };
 
+  const handleSaveMaintenance = async () => {
+    setMaintSaving(true);
+    try {
+      await maintenanceService.set({
+        level: maint.level,
+        allowLogin: maint.allowLogin,
+        allowRegistration: maint.allowRegistration,
+        allowWrites: maint.allowWrites,
+        message: maint.message,
+        until: maint.until ? new Date(maint.until).toISOString() : null,
+      });
+      setNotice({ type: maint.level === 'none' ? 'success' : 'warning', text: `Maintenance set to “${maint.level}” — clients updated in real time` });
+    } catch (e) {
+      setNotice({ type: 'error', text: e?.response?.data?.message || 'Could not update maintenance settings' });
+    }
+    setMaintSaving(false);
+  };
+
   return (
     <Box>
       <PageHeader
@@ -195,6 +230,7 @@ const Admin = () => {
           <Tab label="Access control" />
           <Tab label="Audit log" />
           <Tab label="Security" />
+          <Tab label="Maintenance" />
         </Tabs>
       </Box>
 
@@ -403,6 +439,102 @@ const Admin = () => {
                 height={240}
                 series={[{ key: 'logins', name: 'Logins', color: '#0EA5E9' }]}
               />
+            </SectionCard>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* ===== Maintenance ===== */}
+      {tab === 4 && (
+        <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
+          <Grid item xs={12} md={7}>
+            <SectionCard
+              title="Maintenance mode"
+              subtitle="Restrict the platform while repairs are in progress — changes apply to all clients in real time."
+            >
+              <Stack spacing={2.5}>
+                <Alert severity={maint.level === 'none' ? 'success' : maint.level === 'full' ? 'error' : 'warning'} sx={{ borderRadius: 2.5 }}>
+                  {maint.level === 'none'
+                    ? 'No maintenance restrictions — the platform is fully operational.'
+                    : `Level “${maint.level}” is active. ${maint.level === 'full' ? 'Only admins can access the API.' : 'Restrictions below are enforced.'}`}
+                </Alert>
+
+                <FormControl>
+                  <FormLabel sx={{ fontWeight: 700, mb: 1 }}>Maintenance level</FormLabel>
+                  <RadioGroup
+                    row
+                    value={maint.level}
+                    onChange={(e) => setMaint({ ...maint, level: e.target.value })}
+                  >
+                    <FormControlLabel value="none" control={<Radio />} label="None — fully operational" />
+                    <FormControlLabel value="partial" control={<Radio />} label="Partial — granular restrictions" />
+                    <FormControlLabel value="full" control={<Radio />} label="Full — lockdown for non-admins" />
+                  </RadioGroup>
+                </FormControl>
+
+                <Box>
+                  <FormLabel sx={{ fontWeight: 700, mb: 0.5, display: 'block' }}>Restrictions (apply at “Partial”)</FormLabel>
+                  <FormControlLabel
+                    control={<Switch checked={maint.allowLogin} onChange={(e) => setMaint({ ...maint, allowLogin: e.target.checked })} />}
+                    label="Allow login (non-admins)"
+                  />
+                  <FormControlLabel
+                    control={<Switch checked={maint.allowRegistration} onChange={(e) => setMaint({ ...maint, allowRegistration: e.target.checked })} />}
+                    label="Allow registration"
+                  />
+                  <FormControlLabel
+                    control={<Switch checked={maint.allowWrites} onChange={(e) => setMaint({ ...maint, allowWrites: e.target.checked })} />}
+                    label="Allow write actions (block controls when off)"
+                  />
+                </Box>
+
+                <TextField
+                  label="Message shown to users"
+                  fullWidth multiline minRows={2}
+                  value={maint.message}
+                  onChange={(e) => setMaint({ ...maint, message: e.target.value })}
+                  placeholder="e.g. Upgrading our billing ledger — back shortly"
+                />
+                <TextField
+                  label="Expected back (optional)" type="datetime-local"
+                  value={maint.until}
+                  onChange={(e) => setMaint({ ...maint, until: e.target.value })}
+                  InputLabelProps={{ shrink: true }}
+                />
+
+                <Stack direction="row" spacing={1.5}>
+                  <Button variant="contained" onClick={handleSaveMaintenance} disabled={maintSaving || offline} sx={{ borderRadius: 2.5 }}>
+                    {maintSaving ? 'Applying…' : 'Apply maintenance settings'}
+                  </Button>
+                  <Button variant="outlined" onClick={() => setMaint({ ...maint, level: 'none', allowLogin: true, allowRegistration: true, allowWrites: true })} sx={{ borderRadius: 2.5 }}>
+                    Reset form
+                  </Button>
+                </Stack>
+              </Stack>
+            </SectionCard>
+          </Grid>
+          <Grid item xs={12} md={5}>
+            <SectionCard title="What each level does" contentSx={{ pt: 1 }}>
+              <List disablePadding>
+                {[
+                  { label: 'None', desc: 'All users, all features, no restrictions.' },
+                  { label: 'Partial', desc: 'You choose: allow/block login, registration, and write actions independently. Reads keep working.' },
+                  { label: 'Full', desc: 'Everything except health checks and admin access is blocked. Login works for admins only, so the platform can be fixed and reopened.' },
+                ].map((row) => (
+                  <ListItem key={row.label} disablePadding sx={{ py: 1, alignItems: 'flex-start' }}>
+                    <ListItemText
+                      primary={<Typography variant="body2" fontWeight={700}>{row.label}</Typography>}
+                      secondary={row.desc}
+                      secondaryTypographyProps={{ variant: 'caption' }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+              <Divider sx={{ my: 1.5 }} />
+              <Typography variant="caption" color="text.secondary">
+                Restrictions are enforced server-side (HTTP 503 with your message) and broadcast live to every
+                connected client. Admins always bypass write restrictions and can sign in during full lockdown.
+              </Typography>
             </SectionCard>
           </Grid>
         </Grid>

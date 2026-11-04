@@ -96,6 +96,46 @@ const db = {
   ],
 };
 
+// ===== Billing: plans, subscriptions, invoices =====
+
+export const PLANS = [
+  {
+    id: 'starter', name: 'Starter', price: 29, interval: 'month', seats: 3,
+    tagline: 'For small teams getting started',
+    features: ['3 seats', '5 GB storage', 'Basic analytics', 'Email support', 'API access (10k req/mo)'],
+  },
+  {
+    id: 'pro', name: 'Pro', price: 79, interval: 'month', seats: 10,
+    tagline: 'For growing teams that need more power', popular: true,
+    features: ['10 seats', '50 GB storage', 'Advanced analytics', 'Priority support', 'API access (100k req/mo)', 'Custom dashboards'],
+  },
+  {
+    id: 'business', name: 'Business', price: 249, interval: 'month', seats: 25,
+    tagline: 'For scaling companies with bigger teams',
+    features: ['25 seats', '500 GB storage', 'AI insights', 'Dedicated CSM', 'Unlimited API', 'SSO + SCIM'],
+  },
+  {
+    id: 'enterprise', name: 'Enterprise', price: null, interval: 'month', seats: null,
+    tagline: 'Custom contracts, security reviews & SLAs',
+    features: ['Unlimited seats', 'Custom storage', 'On-prem option', '99.99% SLA', 'Security review', 'Custom integrations'],
+  },
+];
+
+db.subscriptions = [
+  {
+    id: 'sub_1', userId: 'usr_1', planId: 'pro', status: 'active', seats: 8,
+    currentPeriodStart: '2026-10-14T00:00:00Z', currentPeriodEnd: '2026-11-14T00:00:00Z',
+    cancelAtPeriodEnd: false, createdAt: '2026-05-14T09:00:00Z',
+  },
+];
+
+db.invoices = [
+  { id: 'INV-2041', userId: 'usr_1', amount: 632, status: 'paid', date: '2026-10-14', planId: 'pro', seats: 8 },
+  { id: 'INV-1982', userId: 'usr_1', amount: 632, status: 'paid', date: '2026-09-14', planId: 'pro', seats: 8 },
+  { id: 'INV-1921', userId: 'usr_1', amount: 553, status: 'paid', date: '2026-08-14', planId: 'pro', seats: 7 },
+  { id: 'INV-1864', userId: 'usr_1', amount: 553, status: 'paid', date: '2026-07-14', planId: 'pro', seats: 7 },
+];
+
 const findUser = (id) => db.users.find((u) => u.id === id || u._id === id) || null;
 const findUserByEmail = (email) =>
   db.users.find((u) => u.email.toLowerCase() === String(email || '').toLowerCase()) || null;

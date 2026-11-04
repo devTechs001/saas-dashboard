@@ -10,8 +10,8 @@ export const useSocket = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
 
-    // Demo-mode sessions run without a backend — don't hammer reconnects.
-    if (!token || token.startsWith('demo-token')) return undefined;
+    // No session — nothing to connect.
+    if (!token) return undefined;
 
     const newSocket = io(SOCKET_URL, {
       auth: { token },
@@ -52,11 +52,20 @@ export const useSocket = () => {
     }
   };
 
+  const emitEvent = (event, payload) => {
+    if (socket && isConnected) {
+      socket.emit(event, payload);
+      return true;
+    }
+    return false;
+  };
+
   return {
     socket,
     isConnected,
     joinRoom,
     leaveRoom,
     subscribeToEvent,
+    emitEvent,
   };
 };

@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Box, Typography, Grid, Stack, Chip, Button, Card, CardContent, List, ListItem,
   ListItemIcon, ListItemText, Divider, IconButton, Tooltip, Menu, MenuItem,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import EmailIcon from '@mui/icons-material/EmailOutlined';
@@ -22,6 +23,7 @@ import { activityFeed, teamMembers } from '../data/mockData';
 import { formatRelative, formatDate, getInitials, getAvatarColor } from '../utils/format';
 import { SafeText } from '../utils/safeText';
 import { updateUser } from '../store/slices/authSlice.jsx';
+import { authService } from '../services';
 import cover1 from '../assets/cover-1.png';
 
 // Cover photo options: generated image + themed gradients.
@@ -43,7 +45,14 @@ const Profile = () => {
 
   const [coverId, setCoverId] = React.useState(user?.coverPhoto || 'wave');
   const [coverMenu, setCoverMenu] = React.useState(null);
-  const cover = COVER_OPTIONS.find((c) => c.id === coverId) || COVER_OPTIONS[0];
+  const cover = coverId?.startsWith('data:')
+    ? { id: 'custom', label: 'Custom', style: { backgroundImage: `url(${coverId})`, backgroundSize: 'cover', backgroundPosition: 'center' } }
+    : (COVER_OPTIONS.find((c) => c.id === coverId) || COVER_OPTIONS[0]);
+
+  // Inline profile editing (persisted to the API)
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [editForm, setEditForm] = React.useState({ name: user?.name || '', title: user?.title || '', phone: user?.phone || '' });
+  const [saving, setSaving] = React.useState(false);
 
   // Profile completeness: avatar, name, title, email, phone, cover
   const completeness = React.useMemo(() => {
@@ -52,26 +61,81 @@ const Profile = () => {
     return Math.round((done / fields.length) * 100);
   }, [user, name, member, coverId]);
 
-  const handleAvatarUpload = (e) => {
+  const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!/^image\/(png|jpe?g|gif|webp)$/.test(file.type)) {
+      toast.error('Please choose a PNG, JPEG, GIF or WebP image');
+      return;
+    }
     if (file.size > 1024 * 1024) {
       toast.error('Image must be under 1 MB');
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
+      // Optimistic local update, then persist to the API (server re-validates).
       dispatch(updateUser({ avatar: reader.result }));
       toast.success('Profile photo updated');
+      try {
+        await authService.updateProfile({ avatar: reader.result });
+      } catch (err) {
+        toast.error(err?.response?.data?.message || 'Could not save photo to the server');
+      }
     };
     reader.readAsDataURL(file);
   };
 
-  const handleCoverChange = (id) => {
-    setCoverId(id);
-    dispatch(updateUser({ coverPhoto: id }));
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!/^image\/(png|jpe?g|gif|webp)$/.test(file.type)) {
+      toast.error('Please choose a PNG, JPEG, GIF or WebP image');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Cover image must be under 2 MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      setCoverId(reader.result);
+      dispatch(updateUser({ coverPhoto: reader.result }));
+      toast.success('Cover photo updated');
+      try {
+        await authService.updateProfile({ coverPhoto: reader.result });
+      } catch (err) {
+        toast.error(err?.response?.data?.message || 'Could not save cover to the server');
+      }
+    };
+    reader.readAsDataURL(file);
     setCoverMenu(null);
+  };
+
+  const handleCoverChange = async (id) => {
+    setCoverId(id);
+    setCoverMenu(null);
+    dispatch(updateUser({ coverPhoto: id }));
     toast.success('Cover photo updated');
+    try {
+      await authService.updateProfile({ coverPhoto: id });
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Could not save cover to the server');
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      const res = await authService.updateProfile(editForm);
+      if (res?.data?.user) dispatch(updateUser(res.data.user));
+      else dispatch(updateUser(editForm));
+      setEditOpen(false);
+      toast.success('Profile details saved');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Could not save profile');
+    }
+    setSaving(false);
   };
 
   return (
@@ -80,7 +144,7 @@ const Profile = () => {
         title="My Profile"
         subtitle="Your public profile, activity, and performance in the workspace."
         actions={[
-          <Button key="edit" variant="outlined" startIcon={<EditIcon />} onClick={() => navigate('/settings')} sx={{ borderRadius: 2.5 }}>
+          <Button key="edit" variant="outlined" startIcon={<EditIcon />} onClick={() => setEditOpen(true)} sx={{ borderRadius: 2.5 }}>
             Edit profile
           </Button>,
           <Button key="export" variant="contained" startIcon={<DownloadIcon />} sx={{ borderRadius: 2.5 }}>
@@ -103,6 +167,11 @@ const Profile = () => {
             </Button>
           </Stack>
           <Menu anchorEl={coverMenu} open={Boolean(coverMenu)} onClose={() => setCoverMenu(null)} PaperProps={{ sx: { borderRadius: 3, p: 1.5, minWidth: 260 } }}>
+            <MenuItem component="label" sx={{ borderRadius: 2, mb: 1 }}>
+              <CameraAltIcon fontSize="small" sx={{ mr: 1.5 }} /> Upload cover image
+              <input hidden accept="image/png,image/jpeg,image/gif,image/webp" type="file" onChange={handleCoverUpload} />
+            </MenuItem>
+            <Divider sx={{ mb: 1 }} />
             <Typography variant="overline" color="text.secondary" sx={{ px: 1.5, pb: 1, display: 'block' }}>Cover style</Typography>
             <Grid container spacing={1} sx={{ px: 1, width: 260 }}>
               {COVER_OPTIONS.map((c) => (
@@ -261,6 +330,24 @@ const Profile = () => {
           </SectionCard>
         </Grid>
       </Grid>
+
+      {/* Edit profile dialog — persisted via PUT /api/auth/profile */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle fontWeight={800}>Edit profile</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Full name" fullWidth value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+            <TextField label="Job title" fullWidth value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
+            <TextField label="Phone" fullWidth value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setEditOpen(false)} sx={{ borderRadius: 2.5 }}>Cancel</Button>
+          <Button variant="contained" onClick={handleSaveProfile} disabled={saving || !editForm.name.trim()} sx={{ borderRadius: 2.5 }}>
+            {saving ? 'Saving…' : 'Save changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

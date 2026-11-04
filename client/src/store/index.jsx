@@ -4,6 +4,7 @@ import customerReducer from './slices/customerSlice';
 import analyticsReducer from './slices/analyticsSlice';
 import notificationReducer from './slices/notificationSlice';
 import themeReducer from './slices/themeSlice';
+import maintenanceReducer from './slices/maintenanceSlice';
 
 const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ const store = configureStore({
     analytics: analyticsReducer,
     notifications: notificationReducer,
     theme: themeReducer,
+    maintenance: maintenanceReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

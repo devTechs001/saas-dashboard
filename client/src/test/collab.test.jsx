@@ -53,9 +53,13 @@ vi.mock('../services', () => ({
   userService: {
     getDashboard: vi.fn(),
   },
+  maintenanceService: {
+    getStatus: vi.fn(),
+    set: vi.fn(),
+  },
 }));
 
-import { workspaceService, adminService, userService } from '../services';
+import { workspaceService, adminService, userService, maintenanceService } from '../services';
 import Workspaces from '../pages/Workspaces';
 import Admin from '../pages/Admin';
 
@@ -95,6 +99,12 @@ const setupApi = () => {
   adminService.getAuditLogs.mockResolvedValue({ data: { logs: [{ id: 'aud_1', actor: 'Ava', action: 'Updated role', target: 'usr_5', time: '2026-11-03T08:40:00Z', ip: '1.2.3.4' }] } });
   adminService.getStats.mockResolvedValue({ data: { users: { total: 2, active: 2, admins: 1, suspended: 0 }, security: { score: 92, sso: true, mfa: true }, roleMix: [], logins: [] } });
   adminService.updateUser.mockResolvedValue({ data: { user: {} } });
+  maintenanceService.getStatus.mockResolvedValue({
+    data: {
+      level: 'none', allowLogin: true, allowRegistration: true, allowWrites: true,
+      message: '', effective: { loginBlocked: false, registrationBlocked: false, writesBlocked: false },
+    },
+  });
   userService.getDashboard.mockResolvedValue({
     data: {
       user: { id: 'usr_5', name: 'Priya Nair' },

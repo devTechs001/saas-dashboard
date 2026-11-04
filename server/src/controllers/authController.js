@@ -8,9 +8,35 @@ import ApiError from '../utils/apiError.js';
 import logger from '../utils/logger.js';
 import { isDbAvailable } from '../config/database.js';
 import { memoryStore } from '../store/memoryStore.js';
+import { isLoginBlocked, getMaintenance } from '../store/maintenanceStore.js';
 
 // In memory-store mode (no MongoDB), auth runs against the in-memory users so
 // login/register/profile work end-to-end on real HTTP endpoints.
+
+const IMAGE_DATA_URL = /^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/;
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB decoded
+
+/** Validate an avatar/cover value: an image data URL (size + mime limited) or
+ *  a short preset id. Rejects anything else (javascript:, SVG, remote URLs). */
+export const sanitizeImageField = (value, field = 'image') => {
+  if (value === null || value === undefined || value === '') return '';
+  const v = String(value);
+  if (v.startsWith('data:')) {
+    if (!IMAGE_DATA_URL.test(v)) {
+      throw ApiError.badRequest(`${field} must be a PNG, JPEG, GIF or WebP image`);
+    }
+    const approxBytes = Math.floor((v.length - v.indexOf(',') - 1) * 0.75);
+    if (approxBytes > MAX_IMAGE_BYTES) {
+      throw ApiError.badRequest(`${field} must be under 2 MB`);
+    }
+    return v;
+  }
+  // Preset ids / short tokens only — never raw URLs or markup.
+  if (v.length > 64 || /[\s'"<>]/.test(v) || /javascript:/i.test(v)) {
+    throw ApiError.badRequest(`${field} is not a valid image reference`);
+  }
+  return v;
+};
 
 const publicUser = (u) =>
   u && {
@@ -172,6 +198,13 @@ export const login = catchAsync(async (req, res) => {
       throw ApiError.unauthorized('Invalid credentials');
     }
     if (user.isActive === false) throw ApiError.unauthorized('Account is deactivated');
+    // Maintenance login lock — admins can always sign in to fix things.
+    if (isLoginBlocked() && user.role !== 'admin') {
+      const m = getMaintenance();
+      const err = new ApiError(503, m.message || 'System maintenance in progress — login temporarily disabled');
+      err.code = 'MAINTENANCE';
+      throw err;
+    }
     user.lastLogin = memoryStore.now();
     res.json(
       ApiResponse.success(
@@ -198,6 +231,14 @@ export const login = catchAsync(async (req, res) => {
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
     throw ApiError.unauthorized('Invalid credentials');
+  }
+
+  // Maintenance login lock — admins can always sign in to fix things.
+  if (isLoginBlocked() && user.role !== 'admin') {
+    const m = getMaintenance();
+    const err = new ApiError(503, m.message || 'System maintenance in progress — login temporarily disabled');
+    err.code = 'MAINTENANCE';
+    throw err;
   }
 
   user.lastLogin = new Date();
@@ -237,13 +278,16 @@ export const getProfile = catchAsync(async (req, res) => {
 
 export const updateProfile = catchAsync(async (req, res) => {
   const { name, avatar, coverPhoto, title, phone } = req.body;
+  // Validate image fields before touching either data layer.
+  const safeAvatar = avatar !== undefined ? sanitizeImageField(avatar, 'avatar') : undefined;
+  const safeCover = coverPhoto !== undefined ? sanitizeImageField(coverPhoto, 'cover photo') : undefined;
 
   if (!isDbAvailable()) {
     const user = memoryStore.findUser(req.user.id || req.user._id);
     if (!user) throw ApiError.notFound('User not found');
     if (name !== undefined) user.name = String(name).trim().slice(0, 120);
-    if (avatar !== undefined) user.avatar = avatar;
-    if (coverPhoto !== undefined) user.coverPhoto = coverPhoto;
+    if (avatar !== undefined) user.avatar = sanitizeImageField(avatar, 'avatar');
+    if (coverPhoto !== undefined) user.coverPhoto = sanitizeImageField(coverPhoto, 'cover photo');
     if (title !== undefined) user.title = title;
     if (phone !== undefined) user.phone = phone;
     res.json(ApiResponse.success({ user: memoryStore.publicUser(user) }, 'Profile updated successfully'));
@@ -252,7 +296,7 @@ export const updateProfile = catchAsync(async (req, res) => {
 
   const user = await User.findByIdAndUpdate(
     req.user.id,
-    { name, avatar, coverPhoto, title, phone },
+    { name, avatar: safeAvatar, coverPhoto: safeCover, title, phone },
     { new: true, runValidators: true }
   );
 

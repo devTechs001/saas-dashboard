@@ -45,9 +45,10 @@ const Home = () => {
       {/* ============ HERO ============ */}
       <Box sx={{
         pt: { xs: 14, md: 18 }, pb: { xs: 6, md: 10 }, px: 2, position: 'relative', overflow: 'hidden',
-        background: theme.palette.mode === 'dark'
-          ? 'radial-gradient(1000px 500px at 70% -10%, rgba(99,102,241,0.22), transparent 60%)'
-          : 'radial-gradient(1000px 500px at 70% -10%, rgba(99,102,241,0.12), transparent 60%)',
+        backgroundImage: `linear-gradient(180deg, rgba(10,12,28,0.72) 0%, rgba(10,12,28,0.55) 45%, rgba(10,12,28,0.82) 100%), url(/images/hero-bg.jpg)`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}>
         <Container maxWidth="lg">
           <Stack alignItems="center" spacing={3}>
@@ -58,11 +59,11 @@ const Home = () => {
               variant="outlined"
               sx={{ fontWeight: 600, borderRadius: 3, px: 1 }}
             />
-            <Typography variant="h1" align="center" sx={{ fontSize: { xs: '2.35rem', sm: '3.25rem', md: '4.15rem' }, lineHeight: 1.06, maxWidth: 900 }}>
+            <Typography variant="h1" align="center" sx={{ fontSize: { xs: '2.35rem', sm: '3.25rem', md: '4.15rem' }, lineHeight: 1.06, maxWidth: 900, color: '#fff', textShadow: '0 2px 24px rgba(0,0,0,0.35)' }}>
               Run your entire SaaS on{' '}
               <GradientText>one intelligent platform</GradientText>
             </Typography>
-            <Typography variant="h6" align="center" color="text.secondary" sx={{ maxWidth: 660, fontWeight: 400, lineHeight: 1.7 }}>
+            <Typography variant="h6" align="center" sx={{ maxWidth: 660, fontWeight: 400, lineHeight: 1.7, color: 'rgba(255,255,255,0.88)' }}>
               Analytics, CRM, billing, team collaboration, and an AI copilot — unified in a
               beautiful workspace your whole company will actually enjoy using.
             </Typography>
@@ -74,7 +75,7 @@ const Home = () => {
                 Explore live demo
               </Button>
             </Stack>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.72)' }}>
               Free 14-day trial · No credit card required · Cancel anytime
             </Typography>
 

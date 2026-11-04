@@ -314,3 +314,51 @@ export const userService = {
     return response.data;
   },
 };
+
+// ===== Subscriptions =====
+
+export const subscriptionService = {
+  getPlans: async () => {
+    const response = await api.get('/subscriptions/plans');
+    return response.data;
+  },
+
+  getCurrent: async () => {
+    const response = await api.get('/subscriptions/current');
+    return response.data;
+  },
+
+  subscribe: async (data) => {
+    const response = await api.post('/subscriptions', data);
+    return response.data;
+  },
+
+  update: async (data) => {
+    const response = await api.put('/subscriptions/current', data);
+    return response.data;
+  },
+
+  cancel: async (immediate = false) => {
+    const response = await api.post('/subscriptions/cancel', { immediate });
+    return response.data;
+  },
+
+  getInvoices: async () => {
+    const response = await api.get('/subscriptions/invoices');
+    return response.data;
+  },
+};
+
+// ===== Maintenance =====
+
+export const maintenanceService = {
+  getStatus: async () => {
+    const response = await api.get('/maintenance');
+    return response.data;
+  },
+
+  set: async (data) => {
+    const response = await api.put('/maintenance', data);
+    return response.data;
+  },
+};

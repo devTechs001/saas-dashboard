@@ -7,9 +7,16 @@ import notificationRoutes from './notificationRoutes.js';
 import workspaceRoutes from './workspaceRoutes.js';
 import adminRoutes from './adminRoutes.js';
 import userRoutes from './userRoutes.js';
+import subscriptionRoutes from './subscriptionRoutes.js';
+import maintenanceRoutes from './maintenanceRoutes.js';
+import maintenanceGuard from '../middleware/maintenance.js';
 import ApiResponse from '../utils/ApiResponse.js';
 
 const router = express.Router();
+
+// Maintenance enforcement runs first: it opens only the routes needed to
+// reach the status endpoint, sign in (per-user check) and recover sessions.
+router.use(maintenanceGuard);
 
 router.get('/', (req, res) => {
   res.json(ApiResponse.success({ message: 'Enterprise SaaS Dashboard API' }));
@@ -48,5 +55,7 @@ router.use('/notifications', notificationRoutes);
 router.use('/workspaces', workspaceRoutes);
 router.use('/admin', adminRoutes);
 router.use('/users', userRoutes);
+router.use('/subscriptions', subscriptionRoutes);
+router.use('/maintenance', maintenanceRoutes);
 
 export default router;

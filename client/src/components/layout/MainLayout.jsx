@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Drawer, useTheme, useMediaQuery } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import { setMobileSidebarOpen } from '../../store/slices/themeSlice';
+import { MaintenanceBanner } from '../common';
 import Sidebar, { SidebarContent, DRAWER_WIDTH, MINI_DRAWER_WIDTH } from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
@@ -58,7 +59,10 @@ const MainLayout = ({ children }) => {
           flexDirection: 'column',
         }}
       >
-        <Box sx={{ flex: 1, width: '100%', maxWidth: 1440, mx: 'auto' }}>{children}</Box>
+        <Box sx={{ flex: 1, width: '100%', maxWidth: 1440, mx: 'auto', pt: 2 }}>
+          <MaintenanceBanner />
+          {children}
+        </Box>
         <Footer compact />
       </Box>
     </Box>

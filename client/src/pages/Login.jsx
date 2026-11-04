@@ -11,7 +11,7 @@ import LockIcon from '@mui/icons-material/LockOutlined';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice.jsx';
 import { authService } from '../services';
 import { startDemoSession, DEMO_USERS } from '../utils/demoAuth';
@@ -23,6 +23,8 @@ const Login = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [demoRole, setDemoRole] = useState('admin');
+  const maintenance = useSelector((s) => s.maintenance);
+  const loginBlocked = maintenance.loaded && maintenance.effective?.loginBlocked;
 
   const formik = useFormik({
     initialValues: { email: '', password: '' },
@@ -125,15 +127,21 @@ const Login = () => {
             </Link>
           </Stack>
 
+          {loginBlocked && (
+            <Alert severity="error" sx={{ borderRadius: 2.5 }}>
+              {maintenance.message || 'System maintenance in progress — login temporarily disabled.'}
+            </Alert>
+          )}
+
           <Button
             type="submit"
             fullWidth
             variant="contained"
             size="large"
-            disabled={formik.isSubmitting}
+            disabled={formik.isSubmitting || loginBlocked}
             sx={{ py: 1.4, fontSize: '1rem', borderRadius: 2.5 }}
           >
-            {formik.isSubmitting ? 'Signing in…' : 'Sign in'}
+            {loginBlocked ? 'Login disabled' : formik.isSubmitting ? 'Signing in…' : 'Sign in'}
           </Button>
         </Stack>
       </form>

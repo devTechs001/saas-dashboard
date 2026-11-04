@@ -14,7 +14,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice.jsx';
 import { authService } from '../services';
 import { startDemoSession } from '../utils/demoAuth';
@@ -27,6 +27,8 @@ const Register = () => {
   const dispatch = useDispatch();
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const maintenance = useSelector((s) => s.maintenance);
+  const registrationBlocked = maintenance.loaded && maintenance.effective?.registrationBlocked;
 
   const formik = useFormik({
     initialValues: { name: '', email: '', company: '', companySize: COMPANY_SIZES[0], password: '' },
@@ -136,11 +138,17 @@ const Register = () => {
             ))}
           </Stack>
 
+          {registrationBlocked && (
+            <Alert severity="error" sx={{ borderRadius: 2.5 }}>
+              {maintenance.message || 'Registration is temporarily disabled — maintenance in progress.'}
+            </Alert>
+          )}
+
           <Button
             type="submit" fullWidth variant="contained" size="large"
-            disabled={formik.isSubmitting} sx={{ py: 1.4, fontSize: '1rem', borderRadius: 2.5 }}
+            disabled={formik.isSubmitting || registrationBlocked} sx={{ py: 1.4, fontSize: '1rem', borderRadius: 2.5 }}
           >
-            {formik.isSubmitting ? 'Creating workspace…' : 'Create workspace'}
+            {registrationBlocked ? 'Registration disabled' : formik.isSubmitting ? 'Creating workspace…' : 'Create workspace'}
           </Button>
 
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>

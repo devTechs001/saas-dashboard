@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Box, Typography, Grid, Stack, Chip, Card, CardContent, Button, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, Switch, List, ListItem, ListItemIcon,
-  ListItemText, Divider,
+  ListItemText, Divider, Alert,
 } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import CreditCardIcon from '@mui/icons-material/CreditCardOutlined';
@@ -14,14 +14,74 @@ import {
   PageHeader, SectionCard, KpiCard, StatusChip, ProgressBar,
 } from '../components/ui';
 import { BarTrendChart } from '../components/charts';
-import { plans, invoices, usage, revenueSeries } from '../data/mockData';
+import { plans as mockPlans, invoices as mockInvoices, usage, revenueSeries } from '../data/mockData';
+import { subscriptionService } from '../services';
 import { formatCurrency, formatDate } from '../utils/format';
 import { can, PERMISSIONS } from '../utils/rbac';
+import toast from 'react-hot-toast';
 
 const Billing = () => {
   const user = useSelector((state) => state.auth.user);
   const manage = can(user, PERMISSIONS.BILLING_MANAGE);
   const [annual, setAnnual] = React.useState(true);
+
+  // Real subscription data (falls back to demo data when the API is down).
+  const [planList, setPlanList] = React.useState(mockPlans);
+  const [invoiceList, setInvoiceList] = React.useState(mockInvoices);
+  const [currentSub, setCurrentSub] = React.useState(null);
+  const [notice, setNotice] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    try {
+      const [p, c, i] = await Promise.all([
+        subscriptionService.getPlans(),
+        subscriptionService.getCurrent(),
+        subscriptionService.getInvoices(),
+      ]);
+      if (p?.data?.plans?.length) setPlanList(p.data.plans);
+      setCurrentSub(c?.data?.subscription || null);
+      if (i?.data?.invoices?.length) setInvoiceList(i.data.invoices);
+    } catch {
+      /* API unreachable — keep demo data */
+    }
+  }, []);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  const handleSwitchPlan = async (planId) => {
+    if (planId === 'enterprise') {
+      toast('Enterprise is handled by sales — contact us for a custom contract', { icon: '📞' });
+      return;
+    }
+    setBusy(true);
+    try {
+      await subscriptionService.subscribe({ planId, seats: currentSub?.seats || undefined });
+      setNotice({ type: 'success', text: 'Subscription updated — an invoice was generated' });
+      await load();
+    } catch (e) {
+      setNotice({ type: 'error', text: e?.response?.data?.message || 'Could not update subscription' });
+    }
+    setBusy(false);
+  };
+
+  const handleCancel = async () => {
+    setBusy(true);
+    try {
+      await subscriptionService.cancel(false);
+      setNotice({ type: 'warning', text: 'Subscription will cancel at the end of the billing period' });
+      await load();
+    } catch (e) {
+      setNotice({ type: 'error', text: e?.response?.data?.message || 'Could not cancel subscription' });
+    }
+    setBusy(false);
+  };
+
+  const currentPlan = currentSub ? planList.find((p) => p.id === currentSub.planId) : null;
+  const displayPlan = currentPlan || { name: 'Enterprise', price: 2400, features: ['Unlimited events', 'Custom SLA', 'Dedicated CSM'] };
+  const renewsOn = currentSub?.currentPeriodEnd || '2026-12-01';
+  const monthlyCost = currentPlan ? currentPlan.price * (currentSub?.seats || 1) : 2400;
+  const activePlanId = currentSub?.planId || null;
 
   return (
     <Box>
@@ -35,6 +95,12 @@ const Billing = () => {
         ]}
       />
 
+      {notice && (
+        <Alert severity={notice.type} sx={{ mb: 2.5, borderRadius: 2.5 }} onClose={() => setNotice(null)}>
+          {notice.text}
+        </Alert>
+      )}
+
       {/* Current plan banner */}
       <Box sx={{
         p: { xs: 2.5, md: 3.5 }, borderRadius: 3.5, mb: 2.5,
@@ -44,18 +110,28 @@ const Billing = () => {
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ md: 'center' }}>
           <Box>
             <Stack direction="row" spacing={1.25} alignItems="center">
-              <Typography variant="h4" fontWeight={800}>Enterprise</Typography>
-              <Chip label="CURRENT PLAN" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.22)', color: '#fff', fontWeight: 800, letterSpacing: 0.5 }} />
+              <Typography variant="h4" fontWeight={800}>{displayPlan.name}</Typography>
+              <Chip label={currentSub?.cancelAtPeriodEnd ? 'CANCELS AT PERIOD END' : 'CURRENT PLAN'} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.22)', color: '#fff', fontWeight: 800, letterSpacing: 0.5 }} />
             </Stack>
             <Typography variant="body1" sx={{ opacity: 0.9, mt: 0.75 }}>
-              Unlimited events · Custom SLA · Dedicated CSM · Renews on {formatDate('2026-12-01')}
+              {(displayPlan.features || []).slice(0, 3).join(' · ')} · Renews on {formatDate(renewsOn)}
             </Typography>
           </Box>
           <Stack direction="row" spacing={2} alignItems="center">
             <Box sx={{ textAlign: 'right' }}>
               <Typography variant="caption" sx={{ opacity: 0.85 }}>Monthly cost</Typography>
-              <Typography variant="h4" fontWeight={800}>{formatCurrency(2400)}</Typography>
+              <Typography variant="h4" fontWeight={800}>{formatCurrency(monthlyCost)}</Typography>
             </Box>
+            {manage && currentSub && !currentSub.cancelAtPeriodEnd && (
+              <Button
+                variant="outlined"
+                onClick={handleCancel}
+                disabled={busy}
+                sx={{ borderColor: 'rgba(255,255,255,0.6)', color: '#fff', fontWeight: 700, '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,0.12)' } }}
+              >
+                Cancel
+              </Button>
+            )}
             <Button variant="contained" sx={{ bgcolor: '#fff', color: '#4F46E5', fontWeight: 700, '&:hover': { bgcolor: '#EEF2FF' } }} disabled={!manage}>
               Manage
             </Button>
@@ -143,10 +219,12 @@ const Billing = () => {
         </Stack>
       </Stack>
       <Grid container spacing={2.5}>
-        {plans.map((p) => (
+        {planList.map((p) => {
+          const isCurrent = activePlanId === p.id;
+          return (
           <Grid item xs={12} sm={6} md={3} key={p.id}>
-            <Card sx={{ height: '100%', border: p.current ? '2px solid' : '1px solid', borderColor: p.current ? 'primary.main' : 'divider', position: 'relative' }}>
-              {p.current && <Chip label="CURRENT" size="small" color="primary" sx={{ position: 'absolute', top: -12, left: 16, fontWeight: 800, zIndex: 1 }} />}
+            <Card sx={{ height: '100%', border: isCurrent ? '2px solid' : '1px solid', borderColor: isCurrent ? 'primary.main' : 'divider', position: 'relative' }}>
+              {isCurrent && <Chip label="CURRENT" size="small" color="primary" sx={{ position: 'absolute', top: -12, left: 16, fontWeight: 800, zIndex: 1 }} />}
               <CardContent>
                 <Typography variant="h6" fontWeight={800}>{p.name}</Typography>
                 <Typography variant="caption" color="text.secondary">{p.tagline}</Typography>
@@ -165,15 +243,16 @@ const Billing = () => {
                   ))}
                 </List>
                 <Button
-                  fullWidth size="small" variant={p.current ? 'outlined' : 'contained'}
-                  disabled={p.current || !manage} sx={{ borderRadius: 2.5 }}
+                  fullWidth size="small" variant={isCurrent ? 'outlined' : 'contained'}
+                  disabled={isCurrent || !manage || busy} onClick={() => handleSwitchPlan(p.id)} sx={{ borderRadius: 2.5 }}
                 >
-                  {p.current ? 'Current plan' : p.id === 'enterprise' ? 'Contact sales' : 'Switch plan'}
+                  {isCurrent ? 'Current plan' : p.id === 'enterprise' ? 'Contact sales' : activePlanId ? 'Switch plan' : 'Subscribe'}
                 </Button>
               </CardContent>
             </Card>
           </Grid>
-        ))}
+          );
+        })}
       </Grid>
 
       {/* Invoices */}
@@ -193,10 +272,10 @@ const Billing = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {invoices.map((inv) => (
+                  {invoiceList.map((inv) => (
                     <TableRow key={inv.id} hover>
                       <TableCell><Typography variant="body2" fontWeight={700}>#{inv.id}</Typography></TableCell>
-                      <TableCell>{inv.period}</TableCell>
+                      <TableCell>{inv.period || (inv.seats ? `${inv.seats} seats` : '—')}</TableCell>
                       <TableCell>{formatDate(inv.date)}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700 }}>{formatCurrency(inv.amount)}</TableCell>
                       <TableCell align="center"><StatusChip status={inv.status} /></TableCell>
