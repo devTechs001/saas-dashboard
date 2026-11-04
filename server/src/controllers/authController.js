@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import catchAsync from '../utils/catchAsync.js';
 import ApiResponse from '../utils/ApiResponse.js';
@@ -10,6 +11,85 @@ import { memoryStore } from '../store/memoryStore.js';
 
 // In memory-store mode (no MongoDB), auth runs against the in-memory users so
 // login/register/profile work end-to-end on real HTTP endpoints.
+
+const publicUser = (u) =>
+  u && {
+    id: u.id ?? u._id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    title: u.title,
+    status: u.status,
+    permissions: u.permissions,
+    avatar: u.avatar,
+  };
+
+/** Refresh exchange: swap a refresh token (or expired access token) for a
+ *  fresh token pair without forcing a re-login. */
+export const refresh = catchAsync(async (req, res) => {
+  const presented =
+    (req.body && req.body.refreshToken) ||
+    (req.headers.authorization && req.headers.authorization.startsWith('Bearer')
+      ? req.headers.authorization.split(' ')[1]
+      : null);
+  if (!presented) throw ApiError.unauthorized('No session token presented');
+
+  // Demo sessions (dev/preview only) roll over indefinitely.
+  if (presented.startsWith('demo-')) {
+    if (process.env.NODE_ENV === 'production') {
+      throw ApiError.unauthorized('Demo sessions are disabled in production');
+    }
+    const access = presented.replace(/^demo-refresh-/, 'demo-');
+    const refreshToken = presented.startsWith('demo-refresh-')
+      ? presented
+      : presented.replace(/^demo-/, 'demo-refresh-');
+    let user = null;
+    if (access.startsWith('demo-user-')) {
+      user = memoryStore.findUser(access.slice('demo-user-'.length));
+    } else if (access.startsWith('demo-token-')) {
+      const role = access.slice('demo-token-'.length);
+      user = memoryStore.db.users.find((u) => u.role === role) || memoryStore.db.users[0];
+    }
+    res.json(
+      ApiResponse.success(
+        { user: user ? publicUser(user) : null, token: access, refreshToken },
+        'Session refreshed'
+      )
+    );
+    return;
+  }
+
+  // JWT flow: a refresh token (type claim) — or a valid-but-expired access
+  // token (possession proves the session) — can be exchanged.
+  const refreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+  let payload = null;
+  try {
+    const decoded = jwt.verify(presented, refreshSecret);
+    if (decoded.type === 'refresh') payload = decoded;
+  } catch {
+    /* fall through */
+  }
+  if (!payload) {
+    try {
+      payload = jwt.verify(presented, process.env.JWT_SECRET, { ignoreExpiration: true });
+    } catch {
+      throw ApiError.unauthorized('Session expired — please log in again');
+    }
+  }
+
+  const user = isDbAvailable() ? await User.findById(payload.id) : memoryStore.findUser(payload.id);
+  if (!user || user.isActive === false) {
+    throw ApiError.unauthorized('Session is no longer valid');
+  }
+
+  const token = isDbAvailable() ? user.getSignedJwtToken() : `demo-user-${user.id ?? user._id}`;
+  const refreshToken = isDbAvailable()
+    ? user.getSignedRefreshToken()
+    : `demo-refresh-user-${user.id ?? user._id}`;
+  res.json(
+    ApiResponse.success({ user: publicUser(user), token, refreshToken }, 'Session refreshed')
+  );
+});
 
 export const register = catchAsync(async (req, res) => {
   const { name, email, password, role, permissions } = req.body;
@@ -36,7 +116,11 @@ export const register = catchAsync(async (req, res) => {
     memoryStore.db.users.push(user);
     res.status(201).json(
       ApiResponse.success(
-        { user: memoryStore.publicUser(user), token: `demo-user-${user.id}` },
+        {
+          user: memoryStore.publicUser(user),
+          token: `demo-user-${user.id}`,
+          refreshToken: `demo-refresh-user-${user.id}`,
+        },
         'User registered successfully',
         201
       )
@@ -71,6 +155,7 @@ export const register = catchAsync(async (req, res) => {
           permissions: user.permissions,
         },
         token,
+        refreshToken: user.getSignedRefreshToken(),
       },
       'User registered successfully',
       201
@@ -90,7 +175,11 @@ export const login = catchAsync(async (req, res) => {
     user.lastLogin = memoryStore.now();
     res.json(
       ApiResponse.success(
-        { user: memoryStore.publicUser(user), token: `demo-user-${user.id}` },
+        {
+          user: memoryStore.publicUser(user),
+          token: `demo-user-${user.id}`,
+          refreshToken: `demo-refresh-user-${user.id}`,
+        },
         'Login successful'
       )
     );
@@ -128,6 +217,7 @@ export const login = catchAsync(async (req, res) => {
           avatar: user.avatar,
         },
         token,
+        refreshToken: user.getSignedRefreshToken(),
       },
       'Login successful'
     )

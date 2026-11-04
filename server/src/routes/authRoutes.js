@@ -13,6 +13,7 @@ const router = express.Router();
 // Brute-force protection: strict rate limit on all credential/token endpoints.
 router.post('/register', authLimiter, registerValidator, authController.register);
 router.post('/login', authLimiter, loginValidator, authController.login);
+router.post('/refresh', authController.refresh); // rolling session exchange (no credential entry)
 router.post('/forgot-password', authLimiter, authController.forgotPassword);
 router.post('/reset-password', authLimiter, authController.resetPassword);
 

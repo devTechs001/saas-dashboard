@@ -28,6 +28,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Workspaces = lazy(() => import('./pages/Workspaces'));
+const ManagerDashboard = lazy(() => import('./pages/ManagerDashboard'));
 const Customers = lazy(() => import('./pages/Customers'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Reports = lazy(() => import('./pages/Reports'));
@@ -177,6 +178,7 @@ function AppContent() {
               <Route path="/reports" element={<AppShell permission={PERMISSIONS.REPORTS_VIEW}><Reports /></AppShell>} />
               <Route path="/team" element={<AppShell permission={PERMISSIONS.TEAM_VIEW}><Team /></AppShell>} />
               <Route path="/workspaces" element={<AppShell permission={PERMISSIONS.TEAM_VIEW}><Workspaces /></AppShell>} />
+              <Route path="/manager" element={<AppShell permission={PERMISSIONS.TEAM_MANAGE}><ManagerDashboard /></AppShell>} />
               <Route path="/chat" element={<AppShell permission={PERMISSIONS.CHAT_USE}><Chat /></AppShell>} />
               <Route path="/ai" element={<AppShell permission={PERMISSIONS.AI_USE}><AIAssistant /></AppShell>} />
               <Route path="/billing" element={<AppShell permission={PERMISSIONS.BILLING_VIEW}><Billing /></AppShell>} />

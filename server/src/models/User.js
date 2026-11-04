@@ -86,7 +86,18 @@ userSchema.methods.getSignedJwtToken = function () {
   return require('jsonwebtoken').sign(
     { id: this._id, role: this.role, tenantId: this.tenantId },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRE || '7d' }
+    { expiresIn: process.env.JWT_EXPIRE || '1h' }
+  );
+};
+
+// Long-lived refresh token: exchanged at POST /api/auth/refresh for a new
+// access token without forcing a re-login. Distinct `type` claim so an
+// access token can never be used as a refresh token or vice versa.
+userSchema.methods.getSignedRefreshToken = function () {
+  return require('jsonwebtoken').sign(
+    { id: this._id, type: 'refresh' },
+    process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_REFRESH_EXPIRE || '30d' }
   );
 };
 

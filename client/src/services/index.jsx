@@ -10,6 +10,9 @@ export const authService = {
     const response = await api.post('/auth/login', credentials);
     if (response.data.data) {
       localStorage.setItem('token', response.data.data.token);
+      if (response.data.data.refreshToken) {
+        localStorage.setItem('refreshToken', response.data.data.refreshToken);
+      }
       localStorage.setItem('user', JSON.stringify(response.data.data.user));
     }
     return response.data;
@@ -17,7 +20,23 @@ export const authService = {
 
   logout: () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+  },
+
+  refresh: async () => {
+    const credential = localStorage.getItem('refreshToken') || localStorage.getItem('token');
+    const response = await api.post('/auth/refresh', { refreshToken: credential });
+    if (response.data.data) {
+      localStorage.setItem('token', response.data.data.token);
+      if (response.data.data.refreshToken) {
+        localStorage.setItem('refreshToken', response.data.data.refreshToken);
+      }
+      if (response.data.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.data.user));
+      }
+    }
+    return response.data;
   },
 
   forgotPassword: async (email) => {

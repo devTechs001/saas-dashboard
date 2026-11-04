@@ -45,6 +45,7 @@ const NAV_SECTIONS = [
     items: [
       { text: 'Customers', icon: <PeopleIcon />, path: '/customers', permission: PERMISSIONS.CUSTOMERS_VIEW },
       { text: 'Workspaces', icon: <GroupWorkIcon />, path: '/workspaces', permission: PERMISSIONS.TEAM_VIEW },
+      { text: 'Manager Dashboard', icon: <AssessmentIcon />, path: '/manager', permission: PERMISSIONS.TEAM_MANAGE },
       { text: 'Collaboration', icon: <PeopleIcon />, path: '/team', permission: PERMISSIONS.TEAM_VIEW },
       { text: 'Team Chat', icon: <ChatIcon />, path: '/chat', permission: PERMISSIONS.CHAT_USE, badge: 8 },
       { text: 'AI Assistant', icon: <AutoAwesomeIcon />, path: '/ai', permission: PERMISSIONS.AI_USE, badge: 'AI' },

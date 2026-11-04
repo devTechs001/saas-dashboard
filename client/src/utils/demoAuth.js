@@ -29,7 +29,9 @@ export const startDemoSession = (role = 'admin') => {
   const user = typeof role === 'string' && Object.hasOwn(DEMO_USERS, role)
     ? DEMO_USERS[role]
     : DEMO_USERS.admin;
-  localStorage.setItem('token', `demo-token-${user.role}`);
+  const token = `demo-token-${user.role}`;
+  localStorage.setItem('token', token);
+  localStorage.setItem('refreshToken', `demo-refresh-token-${user.role}`);
   localStorage.setItem('user', JSON.stringify(user));
-  return { token: `demo-token-${user.role}`, user };
+  return { token, refreshToken: `demo-refresh-token-${user.role}`, user };
 };
