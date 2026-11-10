@@ -11,10 +11,18 @@ import UpgradeIcon from '@mui/icons-material/UpgradeOutlined';
 import ReceiptIcon from '@mui/icons-material/ReceiptOutlined';
 import { useSelector } from 'react-redux';
 import {
-  PageHeader, SectionCard, KpiCard, StatusChip, ProgressBar,
+  PageHeader, SectionCard, KpiCard, StatusChip, ProgressBar, EmptyState,
 } from '../components/ui';
 import { BarTrendChart } from '../components/charts';
-import { plans, invoices, usage, revenueSeries } from '../data/mockData';
+import { DEMO_AVAILABLE } from '../config/env';
+// Sample dataset: dev builds only. Vite replaces DEMO_AVAILABLE with a
+// literal, so the whole `mock*` import is tree-shaken out of production.
+import { plans as mockPlans } from '../data/marketing';
+import { invoices as mockInvoices, usage as mockUsage, revenueSeries as mockRevenueSeries } from '../data/sampleData';
+const plans = DEMO_AVAILABLE ? mockPlans : [];
+const invoices = DEMO_AVAILABLE ? mockInvoices : [];
+const usage = DEMO_AVAILABLE ? mockUsage : [];
+const revenueSeries = DEMO_AVAILABLE ? mockRevenueSeries : [];
 import { formatCurrency, formatDate } from '../utils/format';
 import { can, PERMISSIONS } from '../utils/rbac';
 
@@ -67,6 +75,7 @@ const Billing = () => {
       <Grid container spacing={2.5}>
         <Grid item xs={12} lg={8}>
           <SectionCard title="Usage this billing period" subtitle="Nov 1 – Nov 30, 2026">
+            {usage.length === 0 && <EmptyState title="No usage data" message="Usage appears once your workspace starts ingesting events." />}
             {usage.map((u) => (
               <ProgressBar
                 key={u.label}
@@ -77,7 +86,7 @@ const Billing = () => {
                 color={typeof u.quota === 'number' && u.used / u.quota > 0.85 ? 'warning' : 'primary'}
               />
             ))}
-            {typeof usage[0].quota === 'number' && (
+            {typeof usage[0]?.quota === 'number' && (
               <Typography variant="caption" color="text.secondary">
                 Quotas reset monthly. Need more capacity? Talk to your CSM about add-on packs.
               </Typography>

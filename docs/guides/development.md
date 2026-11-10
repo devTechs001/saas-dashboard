@@ -53,6 +53,28 @@ npm run dev                # http://localhost:5173
 
 Demo credentials are printed by `npm run seed`. The API envelope and routes are described in [API conventions](../api/README.md).
 
+### Demo mode is dev-only
+
+The SPA has two data sources and the production build can only use one:
+
+| Build | `import.meta.env.DEV` | Demo sign-in | Sample data |
+|---|---|---|---|
+| `npm run dev` | `true` | ✅ "Explore demo" + role switcher on /login, /register | ✅ pages fall back to `src/data/sampleData.js` when the API is unreachable |
+| `npm run build` (Netlify) | `false` | ❌ removed from the bundle | ❌ removed from the bundle |
+
+Everything hangs off `DEMO_AVAILABLE` in [`client/src/config/env.js`](../../client/src/config/env.js).
+Vite replaces `import.meta.env.DEV` with a literal at build time, so each
+`DEMO_AVAILABLE ? sampleData : []` ternary folds to `[]` and Rollup tree-shakes
+`src/data/sampleData.js` out of the deployed bundle. Consequences in production:
+
+- `/login` and `/register` show **no** demo controls; a failed API call surfaces a real error instead of silently starting a fake session.
+- A `demo-token-*` session left in `localStorage` by an older build is purged on boot (`purgeLegacyDemoSession`).
+- Every chart/table falls back to an explicit empty state rather than invented numbers.
+- `src/data/marketing.js` (plans, FAQs, testimonials, feature copy) **is** real product copy and does ship.
+
+There is deliberately no env flag to re-enable demo in a production build.
+
+
 ## Running the Full Stack 🚧
 
 ```bash

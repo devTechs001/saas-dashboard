@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import { DEMO_AVAILABLE } from '../config/env';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (typeof window !== 'undefined' ? window.location.origin : '');
 
@@ -10,8 +11,8 @@ export const useSocket = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
 
-    // Demo-mode sessions run without a backend — don't hammer reconnects.
-    if (!token || token.startsWith('demo-token')) return undefined;
+    // Demo sessions only exist in dev; production always has a real token.
+    if (!token || (DEMO_AVAILABLE && token.startsWith('demo-token'))) return undefined;
 
     const newSocket = io(SOCKET_URL, {
       auth: { token },

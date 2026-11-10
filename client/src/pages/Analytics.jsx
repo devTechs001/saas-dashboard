@@ -9,10 +9,24 @@ import {
 import {
   AreaTrendChart, DonutChart, BarTrendChart, FunnelBars, RadialGauge, HorizontalBarList,
 } from '../components/charts';
-import {
-  kpis, trafficSeries, deviceBreakdown, trafficSources, revenueByPlan,
-  funnel, cohort, topPages, revenueSeries,
-} from '../data/mockData';
+import { DEMO_AVAILABLE } from '../config/env';
+import { useDashboardStats, useDeviceBreakdown, useTopPages } from '../hooks/useAnalytics';
+// Sample dataset: dev builds only. Vite replaces DEMO_AVAILABLE with a
+// literal, so the whole `mock*` import is tree-shaken out of production.
+import { kpis as mockKpis, trafficSeries as mockTrafficSeries, deviceBreakdown as mockDeviceBreakdown, trafficSources as mockTrafficSources, revenueByPlan as mockRevenueByPlan, funnel as mockFunnel, cohort as mockCohort, topPages as mockTopPages, revenueSeries as mockRevenueSeries } from '../data/sampleData';
+const trafficSeries = DEMO_AVAILABLE ? mockTrafficSeries : [];
+const deviceBreakdown = DEMO_AVAILABLE ? mockDeviceBreakdown : [];
+const trafficSources = DEMO_AVAILABLE ? mockTrafficSources : [];
+const revenueByPlan = DEMO_AVAILABLE ? mockRevenueByPlan : [];
+const funnel = DEMO_AVAILABLE ? mockFunnel : [];
+const cohort = DEMO_AVAILABLE ? mockCohort : [];
+const topPages = DEMO_AVAILABLE ? mockTopPages : [];
+const revenueSeries = DEMO_AVAILABLE ? mockRevenueSeries : [];
+const kpis = DEMO_AVAILABLE ? mockKpis : {};
+// Secondary headline numbers for the sample dashboard — dev only.
+const demoKpis = DEMO_AVAILABLE
+  ? { uniqueVisitors: 116200, avgSession: '4m 12s', revenuePerUser: 3.38, sessionsLabel: '312k' }
+  : {};
 import { formatCurrency, formatCompact, formatNumber } from '../utils/format';
 
 const TabPanel = ({ value, index, children }) => (
@@ -28,6 +42,51 @@ const retentionColor = (v) => {
 const Analytics = () => {
   const [tab, setTab] = React.useState(0);
   const [range, setRange] = React.useState('30');
+  const rangeParams = React.useMemo(() => {
+    const end = new Date();
+    const start = new Date(end.getTime() - (Number(range) - 1) * 86400000);
+    return { startDate: start.toISOString(), endDate: end.toISOString() };
+  }, [range]);
+
+  // Real metrics for the selected range. Production shows an em dash while
+  // loading or when the workspace has no analytics yet.
+  const { data: stats } = useDashboardStats(rangeParams);
+  const { data: devices } = useDeviceBreakdown(rangeParams);
+  const { data: remoteTopPages } = useTopPages(10);
+  const totals = stats?.totals;
+
+  const kpiValues = totals
+    ? {
+        revenue: totals.revenue,
+        uniqueVisitors: totals.uniqueVisitors,
+        avgSession: totals.avgSessionDuration ? `${Math.floor(totals.avgSessionDuration / 60)}m ${Math.round(totals.avgSessionDuration % 60)}s` : '—',
+        revenuePerUser: totals.uniqueVisitors ? totals.revenue / totals.uniqueVisitors : 0,
+      }
+    : null;
+
+  const trafficData = (stats?.chartData || []).length
+    ? stats.chartData.map((d) => ({
+        date: new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        visitors: d.uniqueVisitors,
+        pageViews: d.pageViews,
+      }))
+    : trafficSeries;
+
+  const deviceData = devices
+    ? [
+        { name: 'Desktop', value: Math.round(devices.desktop.percentage), color: '#4F46E5' },
+        { name: 'Mobile', value: Math.round(devices.mobile.percentage), color: '#8B5CF6' },
+        { name: 'Tablet', value: Math.round(devices.tablet.percentage), color: '#0EA5E9' },
+      ].filter((d) => d.value > 0)
+    : deviceBreakdown;
+
+  // Top pages: API rows carry { path, views } only — enrich with sample columns
+  // (avg time / bounce) in dev builds, leave them blank in production.
+  const topPagesData = remoteTopPages?.length
+    ? remoteTopPages.map((p) => ({ ...p, avgTime: '—', bounce: null }))
+    : topPages;
+
+  const sessionsLabel = totals?.sessions ? formatCompact(totals.sessions) : (demoKpis.sessionsLabel || '—');
 
   return (
     <Box>
@@ -48,16 +107,16 @@ const Analytics = () => {
       {/* Top KPIs */}
       <Grid container spacing={2.5}>
         <Grid item xs={12} sm={6} lg={3}>
-          <KpiCard label="Total revenue" value={formatCurrency(revenueSeries[11].revenue)} delta={12.4} hint="vs previous month" />
+          <KpiCard label="Total revenue" value={kpiValues ? formatCurrency(kpiValues.revenue) : (revenueSeries.length ? formatCurrency(revenueSeries[revenueSeries.length - 1].revenue) : '—')} delta={stats?.growth?.revenue ?? 12.4} hint="vs previous period" />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
-          <KpiCard label="Unique visitors" value={formatCompact(116200)} delta={9.2} hint="vs previous month" />
+          <KpiCard label="Unique visitors" value={kpiValues ? formatCompact(kpiValues.uniqueVisitors) : (demoKpis.uniqueVisitors ? formatCompact(demoKpis.uniqueVisitors) : '—')} delta={stats?.growth?.uniqueVisitors ?? 9.2} hint="vs previous period" />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
-          <KpiCard label="Avg. session" value="4m 12s" delta={3.8} hint="vs previous month" />
+          <KpiCard label="Avg. session" value={kpiValues ? kpiValues.avgSession : (demoKpis.avgSession || '—')} delta={3.8} hint="vs previous period" />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
-          <KpiCard label="Revenue per user" value={formatCurrency(3.38, 'USD', 2)} delta={-1.4} hint="vs previous month" />
+          <KpiCard label="Revenue per visitor" value={kpiValues ? formatCurrency(kpiValues.revenuePerUser, 'USD', 2) : (demoKpis.revenuePerUser ? formatCurrency(demoKpis.revenuePerUser, 'USD', 2) : '—')} delta={-1.4} hint="vs previous period" />
         </Grid>
       </Grid>
 
@@ -77,7 +136,7 @@ const Analytics = () => {
           <Grid item xs={12} lg={8}>
             <SectionCard title="Traffic trend" subtitle="Visitors and page views, last 30 days">
               <AreaTrendChart
-                data={trafficSeries}
+                data={trafficData}
                 xKey="date"
                 height={300}
                 series={[
@@ -90,7 +149,7 @@ const Analytics = () => {
           </Grid>
           <Grid item xs={12} lg={4}>
             <SectionCard title="Device breakdown" subtitle="Share of sessions">
-              <DonutChart data={deviceBreakdown} centerValue="312k" centerLabel="sessions" height={250} innerRadius={64} />
+              <DonutChart data={deviceData} centerValue={sessionsLabel} centerLabel="sessions" height={250} innerRadius={64} />
             </SectionCard>
           </Grid>
           <Grid item xs={12} md={6}>
@@ -111,13 +170,22 @@ const Analytics = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {topPages.map((p) => (
+                    {topPagesData.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                          No page data for this period yet.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {topPagesData.map((p) => (
                       <TableRow key={p.path} hover>
                         <TableCell><Typography variant="body2" fontWeight={600}>{p.path}</Typography></TableCell>
                         <TableCell align="right">{formatNumber(p.views)}</TableCell>
                         <TableCell align="right">{p.avgTime}</TableCell>
                         <TableCell align="right">
-                          <Chip size="small" label={`${p.bounce}%`} color={p.bounce > 35 ? 'warning' : 'default'} variant={p.bounce > 35 ? 'filled' : 'outlined'} />
+                          {p.bounce == null
+                            ? <Typography variant="body2" color="text.secondary">—</Typography>
+                            : <Chip size="small" label={`${p.bounce}%`} color={p.bounce > 35 ? 'warning' : 'default'} variant={p.bounce > 35 ? 'filled' : 'outlined'} />}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -186,7 +254,7 @@ const Analytics = () => {
           <Grid item xs={12} md={6}>
             <SectionCard title="Visitors & signups" subtitle="Daily, last 30 days">
               <AreaTrendChart
-                data={trafficSeries}
+                data={trafficData}
                 xKey="date"
                 height={300}
                 series={[
@@ -249,7 +317,7 @@ const Analytics = () => {
           </Grid>
           <Grid item xs={12} lg={4}>
             <SectionCard title="Revenue by plan" subtitle="Current month">
-              <DonutChart data={revenueByPlan} height={300} innerRadius={70} centerValue={formatCurrency(84230)} centerLabel="total MRR" />
+              <DonutChart data={revenueByPlan} height={300} innerRadius={70} centerValue={kpiValues ? formatCurrency(kpiValues.revenue) : (kpis.mrr ? formatCurrency(kpis.mrr.value) : '—')} centerLabel="total revenue" />
             </SectionCard>
           </Grid>
           <Grid item xs={12}>

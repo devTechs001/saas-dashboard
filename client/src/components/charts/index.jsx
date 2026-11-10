@@ -27,6 +27,31 @@ const tooltipStyle = (theme) => ({
   labelStyle: { color: theme.palette.text.secondary },
 });
 
+/* ---------- Empty state ----------
+ * Production builds have no sample dataset, so every chart can receive `[]`
+ * (empty workspace, or the API returned nothing yet). Rendering a chart with no
+ * data either throws (Math.max on []) or draws an axis-only frame, so all
+ * chart components short-circuit to this placeholder.
+ */
+const ChartEmpty = ({ height = 200, message = 'No data yet' }) => (
+  <Box
+    sx={{
+      height,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: '1px dashed',
+      borderColor: 'divider',
+      borderRadius: 2,
+      color: 'text.secondary',
+    }}
+  >
+    <Typography variant="body2" color="text.secondary">{message}</Typography>
+  </Box>
+);
+
+const isEmpty = (data) => !Array.isArray(data) || data.length === 0;
+
 const LegendView = ({ payload }) => (
   <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap" sx={{ mt: 1 }}>
     {payload?.map((entry) => (
@@ -41,6 +66,7 @@ const LegendView = ({ payload }) => (
 /* ---------- Area trend (revenue, traffic) ---------- */
 export const AreaTrendChart = ({ data, xKey = 'month', series = [{ key: 'revenue', name: 'Revenue', color: '#4F46E5' }], height = 280, formatValue }) => {
   const theme = useTheme();
+  if (isEmpty(data)) return <ChartEmpty height={height} />;
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
@@ -66,6 +92,7 @@ export const AreaTrendChart = ({ data, xKey = 'month', series = [{ key: 'revenue
 
 /* ---------- Multi-line chart ---------- */
 export const MultiLineChart = ({ data, xKey = 'month', series, height = 280, formatValue }) => {
+  if (isEmpty(data)) return <ChartEmpty height={height} />;
   const theme = useTheme();
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -84,6 +111,7 @@ export const MultiLineChart = ({ data, xKey = 'month', series, height = 280, for
 
 /* ---------- Vertical bars ---------- */
 export const BarTrendChart = ({ data, xKey = 'month', series, height = 280, formatValue, stacked }) => {
+  if (isEmpty(data)) return <ChartEmpty height={height} />;
   const theme = useTheme();
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -102,6 +130,7 @@ export const BarTrendChart = ({ data, xKey = 'month', series, height = 280, form
 
 /* ---------- Revenue vs expenses composed ---------- */
 export const ComposedTrendChart = ({ data, xKey = 'month', barKey = 'expenses', lineKey = 'revenue', height = 280, formatValue }) => {
+  if (isEmpty(data)) return <ChartEmpty height={height} />;
   const theme = useTheme();
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -120,6 +149,7 @@ export const ComposedTrendChart = ({ data, xKey = 'month', barKey = 'expenses', 
 
 /* ---------- Donut / pie ---------- */
 export const DonutChart = ({ data, height = 260, innerRadius = 68, showLegend = true, centerLabel, centerValue }) => {
+  if (isEmpty(data)) return <ChartEmpty height={height} />;
   const theme = useTheme();
   return (
     <Box>
@@ -172,6 +202,7 @@ export const RadialGauge = ({ value, max = 100, label, color = '#4F46E5', height
 /* ---------- Horizontal bars (traffic sources, top pages) ---------- */
 export const HorizontalBarList = ({ data, xKey = 'value', nameKey = 'name', height = 280, formatValue, colors = CHART_COLORS }) => {
   const theme = useTheme();
+  if (isEmpty(data)) return <ChartEmpty height={height} />;
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
@@ -191,6 +222,7 @@ export const HorizontalBarList = ({ data, xKey = 'value', nameKey = 'name', heig
 
 /* ---------- Funnel-style horizontal bars ---------- */
 export const FunnelBars = ({ data, height = 300 }) => {
+  if (isEmpty(data)) return <ChartEmpty height={height} />;
   const max = Math.max(...data.map((d) => d.value));
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.6, justifyContent: 'center', minHeight: height }}>
@@ -220,7 +252,9 @@ export const FunnelBars = ({ data, height = 300 }) => {
 };
 
 /* ---------- Tiny sparkline ---------- */
-export const Sparkline = ({ data, dataKey = 'value', color = '#4F46E5', height = 48 }) => (
+export const Sparkline = ({ data, dataKey = 'value', color = '#4F46E5', height = 48 }) => {
+  if (isEmpty(data)) return <ChartEmpty height={height} message="" />;
+  return (
   <ResponsiveContainer width="100%" height={height}>
     <AreaChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
       <defs>
@@ -232,4 +266,5 @@ export const Sparkline = ({ data, dataKey = 'value', color = '#4F46E5', height =
       <Area type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} fill="url(#spark-grad)" />
     </AreaChart>
   </ResponsiveContainer>
-);
+  );
+};

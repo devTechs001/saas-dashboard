@@ -188,7 +188,7 @@ const Sidebar = ({ variant = 'permanent', onNavigate }) => {
             <Stack component={Link} to="/profile" direction="row" spacing={1.25} alignItems="center" sx={{ textDecoration: 'none', color: 'inherit', minWidth: 0 }}>
               <AppAvatar name={user?.name || 'User'} size={36} />
               <Box sx={{ minWidth: 0 }}>
-                <Typography variant="body2" fontWeight={700} noWrap>{user?.name || 'Demo User'}</Typography>
+                <Typography variant="body2" fontWeight={700} noWrap>{user?.name || 'Account'}</Typography>
                 <Typography variant="caption" color="text.secondary" noWrap>{user?.email || 'user@nexus.io'}</Typography>
               </Box>
             </Stack>

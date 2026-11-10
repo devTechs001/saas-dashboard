@@ -11,7 +11,8 @@ import RocketIcon from '@mui/icons-material/RocketLaunchOutlined';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import { useDispatch, useSelector } from 'react-redux';
 import { markAllAsRead } from '../../store/slices/notificationSlice';
-import { notifications as mockNotifications } from '../../data/mockData';
+import { DEMO_AVAILABLE } from '../../config/env';
+import { notifications as mockNotifications } from '../../data/sampleData';
 import { formatRelative } from '../../utils/format';
 import { EmptyState, AppAvatar } from '../ui';
 
@@ -27,7 +28,10 @@ const TYPE_ICONS = {
 const NotificationsDrawer = ({ open, onClose }) => {
   const dispatch = useDispatch();
   const storeItems = useSelector((state) => state.notifications?.notifications);
-  const raw = storeItems?.length ? storeItems : mockNotifications;
+  // Sample notifications fill the drawer in dev builds only; in production an
+  // empty feed shows the empty state instead of invented alerts.
+  const fallback = DEMO_AVAILABLE ? mockNotifications : [];
+  const raw = storeItems?.length ? storeItems : fallback;
   // Normalize: store uses isRead, mock data uses read.
   const items = raw.map((n) => ({ ...n, read: n.read ?? n.isRead ?? false }));
   const unread = items.filter((n) => !n.read).length;

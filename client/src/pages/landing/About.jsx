@@ -10,7 +10,14 @@ import PublicIcon from '@mui/icons-material/PublicOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { LandingNav, Footer } from '../../components/layout';
 import { GradientText, KpiCard } from '../../components/ui';
-import { teamMembers, statsBar } from '../../data/mockData';
+import { DEMO_AVAILABLE } from '../../config/env';
+// Sample dataset: dev builds only. Vite replaces DEMO_AVAILABLE with a
+// literal, so the whole `mock*` import is tree-shaken out of production.
+import { statsBar } from '../../data/marketing';
+import { teamMembers as mockTeamMembers } from '../../data/sampleData';
+// Sample team members — dev only. Production stats are left blank and filled
+// by the landing-page metrics (see `stats` below).
+const teamMembers = DEMO_AVAILABLE ? mockTeamMembers : [];
 
 const VALUES = [
   { icon: <RocketLaunchIcon fontSize="large" />, title: 'Ship with conviction', desc: 'We bias toward action, measure everything, and iterate relentlessly. Small teams with sharp focus beat big teams with big plans.' },

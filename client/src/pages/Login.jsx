@@ -15,6 +15,7 @@ import { useDispatch } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice.jsx';
 import { authService } from '../services';
 import { startDemoSession, DEMO_USERS } from '../utils/demoAuth';
+import { DEMO_AVAILABLE } from '../config/env';
 import AuthLayout from '../components/auth/AuthLayout';
 
 const Login = () => {
@@ -38,15 +39,18 @@ const Login = () => {
         dispatch(loginSuccess(response.data));
         navigate('/dashboard');
       } catch (err) {
-        // Demo fallback: when the core-api is unreachable, start a local session.
-        if (!err.response) {
+        // Demo fallback — dev builds only. Production always surfaces the
+        // real failure instead of silently signing the user into a fake account.
+        if (DEMO_AVAILABLE && !err.response) {
           const session = startDemoSession('admin');
           dispatch(loginSuccess(session));
           navigate('/dashboard');
           return;
         }
-        dispatch(loginFailure(err.response?.data?.message || 'Login failed'));
-        setError(err.response?.data?.message || 'Login failed. Please try again.');
+        const message = err.response?.data?.message
+          || (err.response ? 'Login failed. Please try again.' : 'Cannot reach the server. Please try again shortly.');
+        dispatch(loginFailure(message));
+        setError(message);
       } finally {
         setSubmitting(false);
       }
@@ -138,36 +142,40 @@ const Login = () => {
         </Stack>
       </form>
 
-      <Divider sx={{ my: 3 }}>
-        <Chip label="or explore instantly" size="small" sx={{ fontWeight: 600 }} />
-      </Divider>
+      {DEMO_AVAILABLE && (
+        <>
+          <Divider sx={{ my: 3 }}>
+            <Chip label="or explore instantly" size="small" sx={{ fontWeight: 600 }} />
+          </Divider>
 
-      {/* Demo mode — showcase role-based access without a backend */}
-      <Box sx={{ p: 2.25, borderRadius: 3, border: '1px dashed', borderColor: 'primary.main', bgcolor: 'action.hover' }}>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-          <AutoAwesomeIcon fontSize="small" color="primary" />
-          <Typography variant="subtitle2" fontWeight={700}>Demo mode</Typography>
-          <Chip size="small" label="Test any role" color="primary" variant="outlined" sx={{ height: 20, fontSize: 10.5 }} />
-        </Stack>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} alignItems={{ sm: 'center' }}>
-          <TextField
-            select
-            size="small"
-            fullWidth
-            label="View as"
-            value={demoRole}
-            onChange={(e) => setDemoRole(e.target.value)}
-            sx={{ minWidth: 170 }}
-          >
-            {Object.entries(DEMO_USERS).map(([role, u]) => (
-              <MenuItem key={role} value={role}>{u.name} — {role}</MenuItem>
-            ))}
-          </TextField>
-          <Button variant="outlined" onClick={handleDemo} sx={{ whiteSpace: 'nowrap', borderRadius: 2.5 }}>
-            Explore demo
-          </Button>
-        </Stack>
-      </Box>
+          {/* Demo mode — dev builds only, showcase role-based access without a backend */}
+          <Box sx={{ p: 2.25, borderRadius: 3, border: '1px dashed', borderColor: 'primary.main', bgcolor: 'action.hover' }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+              <AutoAwesomeIcon fontSize="small" color="primary" />
+              <Typography variant="subtitle2" fontWeight={700}>Demo mode</Typography>
+              <Chip size="small" label="Test any role" color="primary" variant="outlined" sx={{ height: 20, fontSize: 10.5 }} />
+            </Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} alignItems={{ sm: 'center' }}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                label="View as"
+                value={demoRole}
+                onChange={(e) => setDemoRole(e.target.value)}
+                sx={{ minWidth: 170 }}
+              >
+                {Object.entries(DEMO_USERS).map(([role, u]) => (
+                  <MenuItem key={role} value={role}>{u.name} — {role}</MenuItem>
+                ))}
+              </TextField>
+              <Button variant="outlined" onClick={handleDemo} sx={{ whiteSpace: 'nowrap', borderRadius: 2.5 }}>
+                Explore demo
+              </Button>
+            </Stack>
+          </Box>
+        </>
+      )}
     </AuthLayout>
   );
 };

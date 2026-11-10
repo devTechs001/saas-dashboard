@@ -48,10 +48,10 @@ const Settings = () => {
   const [profile, setProfile] = React.useState({
     name: user?.name || '',
     email: user?.email || '',
-    phone: '+254 712 345 678',
-    title: 'Head of Revenue Operations',
-    timezone: 'Africa/Nairobi (GMT+3)',
-    language: 'English (US)',
+    phone: user?.phone || '',
+    title: user?.title || '',
+    timezone: user?.timezone || 'UTC',
+    language: user?.language || 'English (US)',
   });
 
   const handleProfileSave = () => {

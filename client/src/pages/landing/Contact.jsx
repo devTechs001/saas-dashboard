@@ -11,7 +11,7 @@ import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircleOutline';
 import { LandingNav, Footer } from '../../components/layout';
 import { GradientText } from '../../components/ui';
-import { faqs } from '../../data/mockData';
+import { faqs } from '../../data/marketing';
 
 const TOPICS = ['General enquiry', 'Sales & pricing', 'Product support', 'Partnerships', 'Security review', 'Careers'];
 

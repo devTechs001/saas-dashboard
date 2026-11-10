@@ -15,7 +15,15 @@ import {
   PageHeader, SectionCard, AppAvatar, RoleChip, StatusChip, MetricDelta,
 } from '../components/ui';
 import { BarTrendChart } from '../components/charts';
-import { tasks, activityFeed, teamMembers } from '../data/mockData';
+import { DEMO_AVAILABLE } from '../config/env';
+// Sample dataset: dev builds only. Vite replaces DEMO_AVAILABLE with a
+// literal, so the whole `mock*` import is tree-shaken out of production.
+import { tasks as mockTasks, activityFeed as mockActivityFeed, teamMembers as mockTeamMembers } from '../data/sampleData';
+const activityFeed = DEMO_AVAILABLE ? mockActivityFeed : [];
+const teamMembers = DEMO_AVAILABLE ? mockTeamMembers : [];
+// Board columns are always present; only their contents are sampled.
+const EMPTY_TASKS = { todo: [], inProgress: [], done: [] };
+const tasks = { ...EMPTY_TASKS, ...(DEMO_AVAILABLE ? mockTasks : {}) };
 import { formatRelative, formatDate } from '../utils/format';
 import { SafeText } from '../utils/safeText';
 import { can, PERMISSIONS } from '../utils/rbac';

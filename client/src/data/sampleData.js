@@ -1,6 +1,22 @@
-// Central mock dataset for the front end.
-// Mirrors the API shapes documented in docs/api so swapping to real
-// endpoints later is a drop-in change (see src/services).
+// SAMPLE DATA — dev builds only.
+//
+// These exported values describe an imaginary workspace (KPIs, traffic series,
+// customers, teammates, invoices…). Pages read them through a
+// `DEMO_AVAILABLE ? mockX : []` ternary in `src/config/env`, which Vite turns
+// into a compile-time constant, so this entire module is dropped from
+// production bundles. Nothing here may be shown to a real user.
+//
+// Shapes mirror docs/api so swapping to the real endpoints is a drop-in change.
+
+// Static content + sample dataset for the front end.
+//
+//  • Marketing content (plans, FAQs, testimonials, feature copy) is real copy
+//    and is imported directly by the landing pages and /pricing.
+//  • Everything else is *sample* data (kpis, series, customers, users…).
+//    It must only ever reach the UI behind `DEMO_AVAILABLE`, which
+//    is false in production builds so the sample data is tree-shaken away.
+//
+// Shapes mirror docs/api so swapping to the real endpoints is a drop-in change.
 
 export const kpis = {
   mrr: { value: 84230, delta: 12.4 },
@@ -10,6 +26,7 @@ export const kpis = {
   arr: { value: 1010760, delta: 15.2 },
   nps: { value: 62, delta: 4 },
 };
+
 
 export const revenueSeries = [
   { month: 'Jan', revenue: 41200, expenses: 26100, subscriptions: 320 },
@@ -26,6 +43,7 @@ export const revenueSeries = [
   { month: 'Dec', revenue: 84230, expenses: 39500, subscriptions: 634 },
 ];
 
+
 export const trafficSeries = Array.from({ length: 30 }, (_, i) => {
   const day = new Date(Date.now() - (29 - i) * 86400000);
   const base = 2400 + Math.sin(i / 3) * 500 + i * 28;
@@ -37,12 +55,14 @@ export const trafficSeries = Array.from({ length: 30 }, (_, i) => {
   };
 });
 
+
 export const deviceBreakdown = [
   { name: 'Desktop', value: 54, color: '#4F46E5' },
   { name: 'Mobile', value: 33, color: '#0EA5E9' },
   { name: 'Tablet', value: 9, color: '#34D399' },
   { name: 'Other', value: 4, color: '#F59E0B' },
 ];
+
 
 export const trafficSources = [
   { name: 'Organic Search', value: 41200 },
@@ -53,12 +73,14 @@ export const trafficSources = [
   { name: 'Paid Ads', value: 6400 },
 ];
 
+
 export const revenueByPlan = [
   { name: 'Enterprise', value: 42100, color: '#4F46E5' },
   { name: 'Business', value: 24800, color: '#0EA5E9' },
   { name: 'Pro', value: 12600, color: '#34D399' },
   { name: 'Starter', value: 4730, color: '#F59E0B' },
 ];
+
 
 export const funnel = [
   { stage: 'Visitors', value: 48200 },
@@ -67,6 +89,7 @@ export const funnel = [
   { stage: 'Subscribed', value: 1840 },
   { stage: 'Renewed', value: 1290 },
 ];
+
 
 export const cohort = [
   { cohort: 'Jun', size: 412, retention: [100, 68, 54, 47, 42, 39] },
@@ -77,6 +100,7 @@ export const cohort = [
   { cohort: 'Nov', size: 597, retention: [100, 0, 0, 0, 0, 0] },
 ];
 
+
 export const topPages = [
   { path: '/dashboard', views: 18420, avgTime: '4m 32s', bounce: 21 },
   { path: '/pricing', views: 12870, avgTime: '2m 18s', bounce: 38 },
@@ -85,11 +109,13 @@ export const topPages = [
   { path: '/docs/getting-started', views: 6890, avgTime: '5m 47s', bounce: 19 },
 ];
 
+
 export const goals = [
   { label: 'Q4 Revenue target', current: 84230, target: 100000, unit: '$' },
   { label: 'New sign-ups', current: 1840, target: 2500, unit: '' },
   { label: 'NPS ≥ 60', current: 62, target: 60, unit: '' },
 ];
+
 
 export const customers = [
   { id: 'cus_1', name: 'Acme Corp', email: 'ops@acme.com', company: 'Acme Corp', status: 'active', value: 48200, plan: 'Enterprise', owner: 'Maya Chen', lastActive: '2026-11-03T09:12:00Z', tags: ['fintech', 'strategic'], country: 'US' },
@@ -102,6 +128,7 @@ export const customers = [
   { id: 'cus_8', name: 'Lumen Studio', email: 'studio@lumen.design', company: 'Lumen Studio', status: 'inactive', value: 4200, plan: 'Starter', owner: 'Jordan Lee', lastActive: '2026-10-11T10:15:00Z', tags: ['design'], country: 'FR' },
 ];
 
+
 export const teamMembers = [
   { id: 'usr_1', name: 'Ava Mitchell', email: 'ava@nexus.io', role: 'admin', title: 'CEO & Co-founder', status: 'online', tasksDone: 128, location: 'Nairobi, KE' },
   { id: 'usr_2', name: 'Maya Chen', email: 'maya@nexus.io', role: 'admin', title: 'Head of Sales', status: 'online', tasksDone: 214, location: 'San Francisco, US' },
@@ -111,11 +138,13 @@ export const teamMembers = [
   { id: 'usr_6', name: 'Luca Rossi', email: 'luca@nexus.io', role: 'viewer', title: 'Support Engineer', status: 'online', tasksDone: 143, location: 'Milan, IT' },
 ];
 
+
 export const platformUsers = [
   ...teamMembers,
   { id: 'usr_7', name: 'Nadia Haddad', email: 'nadia@acme.com', role: 'viewer', title: 'Acme — Ops', status: 'offline', tasksDone: 12, location: 'Dubai, AE' },
   { id: 'usr_8', name: 'Tom Becker', email: 'tom@nimbuslabs.io', role: 'manager', title: 'Nimbus — CTO', status: 'away', tasksDone: 45, location: 'Berlin, DE' },
 ];
+
 
 export const tasks = {
   todo: [
@@ -134,6 +163,7 @@ export const tasks = {
   ],
 };
 
+
 export const activityFeed = [
   { id: 'act_1', type: 'deal', actor: 'Maya Chen', text: 'closed <b>Acme Corp</b> renewal — $48,200 ARR', time: '2026-11-03T09:30:00Z' },
   { id: 'act_2', type: 'report', actor: 'Priya Nair', text: 'generated <b>October revenue report</b>', time: '2026-11-03T08:12:00Z' },
@@ -143,6 +173,7 @@ export const activityFeed = [
   { id: 'act_6', type: 'billing', actor: 'System', text: 'invoice <b>#INV-2041</b> paid — $2,400', time: '2026-11-01T16:35:00Z' },
 ];
 
+
 export const chatChannels = [
   { id: 'gen', name: 'general', unread: 2 },
   { id: 'sales', name: 'sales-wins', unread: 5 },
@@ -150,6 +181,7 @@ export const chatChannels = [
   { id: 'cs', name: 'customer-success', unread: 1 },
   { id: 'random', name: 'random', unread: 0 },
 ];
+
 
 export const chatMessages = {
   gen: [
@@ -175,12 +207,14 @@ export const chatMessages = {
   ],
 };
 
+
 export const aiInsights = [
   { id: 'ins_1', type: 'opportunity', title: 'Upsell opportunity: Nimbus Labs', detail: 'Usage is at 91% of the Business plan quota. Reaching out before the limit could convert them to Enterprise (~+$18k ARR).', confidence: 0.87 },
   { id: 'ins_2', type: 'risk', title: 'Churn risk: Orbit Logistics', detail: 'Login frequency down 64% over 21 days and two support tickets escalated. Suggested action: success call this week.', confidence: 0.82 },
   { id: 'ins_3', type: 'trend', title: 'Revenue forecast on track', detail: 'Based on the last 12 months, December MRR is projected at $86.5k–$89.1k (±2.3%).', confidence: 0.78 },
   { id: 'ins_4', type: 'anomaly', title: 'Traffic spike on /pricing', detail: 'Referral traffic +218% since Monday, mostly from dev communities. Consider fast-tracking the self-serve signup experiment.', confidence: 0.91 },
 ];
+
 
 export const invoices = [
   { id: 'INV-2041', date: '2026-11-01', amount: 2400, status: 'paid', plan: 'Enterprise', period: 'Nov 2026' },
@@ -190,24 +224,6 @@ export const invoices = [
   { id: 'INV-2005', date: '2026-07-01', amount: 1980, status: 'paid', plan: 'Business', period: 'Jul 2026' },
 ];
 
-export const plans = [
-  {
-    id: 'starter', name: 'Starter', price: 29, period: 'mo', tagline: 'For small teams getting started',
-    features: ['Up to 5 team members', '10k events / month', 'Basic analytics', 'Email support'], current: false,
-  },
-  {
-    id: 'pro', name: 'Pro', price: 99, period: 'mo', tagline: 'For growing companies',
-    features: ['Up to 25 team members', '250k events / month', 'Advanced analytics & reports', 'AI insights (basic)', 'Priority support'], current: false,
-  },
-  {
-    id: 'business', name: 'Business', price: 249, period: 'mo', tagline: 'For scaling organizations',
-    features: ['Unlimited team members', '2M events / month', 'Custom reports & exports', 'AI insights + anomaly alerts', 'SSO & audit logs', 'Dedicated CSM'], current: false,
-  },
-  {
-    id: 'enterprise', name: 'Enterprise', price: 'Custom', period: '', tagline: 'For enterprises with advanced needs',
-    features: ['Everything in Business', 'Unlimited events', 'Custom SLAs & contracts', 'On-prem / VPC options', 'Security reviews & BAA', '24/7 premium support'], current: true,
-  },
-];
 
 export const usage = [
   { label: 'API calls', used: 684210, quota: 2000000 },
@@ -216,16 +232,19 @@ export const usage = [
   { label: 'Report generations', used: 84, quota: 500 },
 ];
 
+
 export const apiKeys = [
   { id: 'key_1', name: 'Production', prefix: 'sk_live_8f2a…c91d', created: '2026-06-14', lastUsed: '2026-11-03T09:58:00Z', scope: 'full' },
   { id: 'key_2', name: 'Staging', prefix: 'sk_test_3b7e…44a2', created: '2026-06-14', lastUsed: '2026-11-02T22:10:00Z', scope: 'read' },
   { id: 'key_3', name: 'Local dev', prefix: 'sk_test_91cc…0e5f', created: '2026-09-02', lastUsed: '2026-10-28T12:00:00Z', scope: 'read' },
 ];
 
+
 export const webhooks = [
   { id: 'wh_1', url: 'https://api.acme.com/hooks/saas', events: ['invoice.paid', 'user.created'], status: 'active', lastDelivery: '2026-11-03T09:31:00Z' },
   { id: 'wh_2', url: 'https://staging.acme.com/hooks/saas', events: ['*'], status: 'paused', lastDelivery: '2026-10-30T18:02:00Z' },
 ];
+
 
 export const notifications = [
   { id: 'not_1', title: 'Payment received', message: 'Invoice #INV-2041 paid — $2,400.00', type: 'billing', read: false, time: '2026-11-03T09:35:00Z' },
@@ -236,44 +255,11 @@ export const notifications = [
   { id: 'not_6', title: 'Weekly digest', message: 'Your weekly performance digest is available', type: 'system', read: true, time: '2026-11-01T07:00:00Z' },
 ];
 
+
 export const reports = [
   { id: 'rep_1', title: 'October Revenue Report', type: 'revenue', status: 'ready', createdAt: '2026-11-01T08:12:00Z', size: '2.4 MB', format: 'PDF' },
   { id: 'rep_2', title: 'Q3 Cohort Analysis', type: 'cohort', status: 'ready', createdAt: '2026-10-12T10:30:00Z', size: '5.1 MB', format: 'XLSX' },
   { id: 'rep_3', title: 'Traffic & Acquisition', type: 'traffic', status: 'generating', createdAt: '2026-11-03T09:50:00Z', size: '—', format: 'PDF' },
   { id: 'rep_4', title: 'Customer Health Overview', type: 'customers', status: 'ready', createdAt: '2026-10-28T14:45:00Z', size: '1.8 MB', format: 'CSV' },
   { id: 'rep_5', title: 'Churn Deep-Dive', type: 'customers', status: 'failed', createdAt: '2026-10-20T09:00:00Z', size: '—', format: 'PDF' },
-];
-
-export const testimonials = [
-  { name: 'Sofia Alvarez', role: 'VP Revenue Ops, Helios Retail', quote: 'We replaced four tools with this platform. The AI churn alerts alone paid for the subscription in the first month.' },
-  { name: 'Daniel Kim', role: 'CTO, Nimbus Labs', quote: 'The analytics pipeline is fast and the API is a joy to integrate. Our dashboards load in under a second.' },
-  { name: 'Grace Mensah', role: 'Head of Growth, Bluewave Media', quote: 'Beautiful product, serious depth. Onboarding our team took a single afternoon.' },
-];
-
-export const clientLogos = ['Acme Corp', 'Nimbus Labs', 'Helios Retail', 'Vertex Health', 'Bluewave', 'Orbit Logistics'];
-
-export const faqs = [
-  { q: 'How long does onboarding take?', a: 'Most teams are live within a day. Import your customers, connect your data sources, and the dashboards populate automatically.' },
-  { q: 'Is my data isolated from other tenants?', a: 'Yes. Every record is scoped to your organization, enforced at every layer of the stack — gateway, API, and database.' },
-  { q: 'Can I export my data?', a: 'Any report can be exported as CSV, XLSX, or PDF, and full raw exports are available on Business and Enterprise plans.' },
-  { q: 'Do you offer SSO and audit logs?', a: 'SSO (SAML/OIDC) and full audit logging are included on the Business plan and above.' },
-];
-
-export const featureCards = [
-  { icon: 'analytics', title: 'Real-time Analytics', desc: 'Sub-second dashboards with funnels, cohorts, and custom metrics that update live.' },
-  { icon: 'ai', title: 'AI Copilot & Insights', desc: 'Anomaly detection, churn risk scoring, and revenue forecasting built on your data.' },
-  { icon: 'crm', title: 'CRM & Pipelines', desc: 'Customers, deals, and health scores in one workspace your whole team shares.' },
-  { icon: 'team', title: 'Team Collaboration', desc: 'Shared boards, threads, mentions, and activity feeds — decisions stay in context.' },
-  { icon: 'reports', title: 'Reports & Exports', desc: 'Scheduled PDF/XLSX reports delivered to inboxes, Slack, or your data warehouse.' },
-  { icon: 'shield', title: 'Enterprise Security', desc: 'RBAC, SSO, audit logs, and SOC 2-ready controls out of the box.' },
-  { icon: 'billing', title: 'Billing & Subscriptions', desc: 'Plans, invoices, and usage-based billing with an auditable ledger.' },
-  { icon: 'code', title: 'Developer Platform', desc: 'REST + webhooks, API keys, and SDKs. Everything in the UI is API-first.' },
-  { icon: 'theme', title: 'Themes & Personalization', desc: 'Light/dark themes, accent colors, and configurable dashboards per user.' },
-];
-
-export const statsBar = [
-  { value: '99.98%', label: 'Uptime' },
-  { value: '12M+', label: 'Events / day' },
-  { value: '4,200+', label: 'Teams' },
-  { value: '<1s', label: 'Dashboard load' },
 ];

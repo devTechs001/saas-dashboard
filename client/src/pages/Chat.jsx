@@ -14,7 +14,13 @@ import { useSelector } from 'react-redux';
 import { PageHeader, AppAvatar } from '../components/ui';
 import { useSocket } from '../hooks/useSocket';
 import { playMessageSound } from '../utils/sound';
-import { chatChannels, chatMessages, teamMembers } from '../data/mockData';
+import { DEMO_AVAILABLE } from '../config/env';
+// Sample dataset: dev builds only. Vite replaces DEMO_AVAILABLE with a
+// literal, so the whole `mock*` import is tree-shaken out of production.
+import { chatChannels as mockChatChannels, chatMessages as mockChatMessages, teamMembers as mockTeamMembers } from '../data/sampleData';
+const chatChannels = DEMO_AVAILABLE ? mockChatChannels : [];
+const teamMembers = DEMO_AVAILABLE ? mockTeamMembers : [];
+const chatMessages = DEMO_AVAILABLE ? mockChatMessages : {};
 import { getAvatarColor } from '../utils/format';
 
 const Chat = () => {

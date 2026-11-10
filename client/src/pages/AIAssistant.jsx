@@ -13,7 +13,14 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopyOutlined';
 import ThumbUpIcon from '@mui/icons-material/ThumbUpAltOutlined';
 import { PageHeader, SectionCard, AppAvatar, MetricDelta } from '../components/ui';
 import { DonutChart, Sparkline } from '../components/charts';
-import { aiInsights, revenueSeries, revenueByPlan } from '../data/mockData';
+import { DEMO_AVAILABLE } from '../config/env';
+// Sample dataset: dev builds only. Vite replaces DEMO_AVAILABLE with a
+// literal, so the whole `mock*` import is tree-shaken out of production.
+import { kpis as mockKpis, aiInsights as mockAiInsights, revenueSeries as mockRevenueSeries, revenueByPlan as mockRevenueByPlan } from '../data/sampleData';
+const kpis = DEMO_AVAILABLE ? mockKpis : {};
+const aiInsights = DEMO_AVAILABLE ? mockAiInsights : [];
+const revenueSeries = DEMO_AVAILABLE ? mockRevenueSeries : [];
+const revenueByPlan = DEMO_AVAILABLE ? mockRevenueByPlan : [];
 import { formatCurrency } from '../utils/format';
 
 const INSIGHT_ICONS = {
@@ -30,12 +37,17 @@ const SUGGESTIONS = [
   'How is our signup conversion trending?',
 ];
 
-const CANNED_REPLIES = [
+const SAMPLE_REPLIES = [
   "Revenue grew 12.4% month-over-month, driven primarily by Enterprise upgrades (+$9.2k) and 63 new Business subscriptions. Churn stayed flat at 1.9%, so net new MRR was $8.4k.",
   "Three accounts show elevated churn risk: Orbit Logistics (0.82), Lumen Studio (0.61), and Bluewave Media (0.58). Orbit's login frequency dropped 64% — I'd suggest a success call this week.",
   "Based on the trailing 12 months and current pipeline, next quarter's MRR lands between $86.5k and $89.1k with 78% confidence. Upselling Nimbus Labs to Enterprise could add ~$1.5k/mo.",
   "Signup conversion is 3.82% overall, down 0.6 points. The drop is concentrated on mobile (2.1% vs 5.4% desktop) — the mobile pricing page experiment may be worth prioritizing.",
 ];
+// Canned answers are sample data — dev builds only. Production has no AI
+// endpoint yet, so the copilot says so instead of inventing revenue numbers.
+const CANNED_REPLIES = DEMO_AVAILABLE ? SAMPLE_REPLIES : [];
+const AI_UNAVAILABLE =
+  'The AI copilot is not connected in this environment yet. Once the assistant endpoint is live, answers will be grounded in your real workspace data.';
 
 const AIAssistant = () => {
   const theme = useTheme();
@@ -60,7 +72,9 @@ const AIAssistant = () => {
     setDraft('');
     setTyping(true);
     setTimeout(() => {
-      const reply = CANNED_REPLIES[Math.floor(Math.random() * CANNED_REPLIES.length)];
+      const reply = CANNED_REPLIES.length
+        ? CANNED_REPLIES[Math.floor(Math.random() * CANNED_REPLIES.length)]
+        : AI_UNAVAILABLE;
       setThread((t) => [...t, { id: `a_${Date.now()}`, role: 'assistant', text: reply }]);
       setTyping(false);
     }, 900 + Math.random() * 700);
@@ -201,7 +215,7 @@ const AIAssistant = () => {
             <SectionCard title="Revenue pulse" subtitle="MRR trend & mix">
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box>
-                  <Typography variant="h4" fontWeight={800}>{formatCurrency(84230)}</Typography>
+                  <Typography variant="h4" fontWeight={800}>{kpis.mrr ? formatCurrency(kpis.mrr.value) : '—'}</Typography>
                   <MetricDelta value={12.4} />
                 </Box>
                 <Box sx={{ width: 150 }}>

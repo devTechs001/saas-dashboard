@@ -23,6 +23,7 @@ The MERN core deploys as two hosted apps — SPA on **Netlify**, API on **Render
    - Base directory `client/`, build `npm ci && npm run build`, publish `dist` (relative to `base`, i.e. `client/dist` — do **not** write `client/dist`, it resolves to `client/client/dist`)
    - SPA fallback `/* → /index.html 200` (client-side routing for /features, /pricing, /about, /contact…)
    - Security headers (CSP, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy) + immutable caching for hashed assets; `index.html` is `must-revalidate` so deploys are picked up immediately
+   - Demo mode is dev-only: `npm run build` sets `import.meta.env.DEV=false`, which removes the demo sign-in UI, the fake-session fallback, and the entire sample dataset from the bundle. Production pages call the API and show empty states when it has no data.
    - Provider order note: `QueryClientProvider` wraps the whole app (above the splash screen and `useRealtime()`); React Query hooks outside it throw `No QueryClient set, use QueryClientProvider to set one`
 3. Set build env `VITE_API_URL=https://<your-render-service>.onrender.com/api` (and `VITE_SOCKET_URL` to the same origin without `/api`).
 4. Every push to `main` redeploys automatically (deploy previews per PR).

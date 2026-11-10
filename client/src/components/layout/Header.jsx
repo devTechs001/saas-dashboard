@@ -200,16 +200,16 @@ const Header = () => {
           {/* Profile */}
           <IconButton onClick={(e) => setProfileAnchor(e.currentTarget)} sx={{ p: 0.5 }}>
             <Stack direction="row" spacing={1} alignItems="center">
-              <AppAvatar name={user?.name || 'Demo User'} size={34} />
+              <AppAvatar name={user?.name || 'Account'} size={34} />
             </Stack>
           </IconButton>
           <Menu anchorEl={profileAnchor} open={Boolean(profileAnchor)} onClose={() => setProfileAnchor(null)} PaperProps={{ sx: { borderRadius: 3, minWidth: 250, mt: 1 } }}>
             <Box sx={{ px: 2, py: 1.25 }}>
               <Stack direction="row" spacing={1.25} alignItems="center">
-                <AppAvatar name={user?.name || 'Demo User'} size={42} />
+                <AppAvatar name={user?.name || 'Account'} size={42} />
                 <Box>
-                  <Typography variant="subtitle2" fontWeight={700}>{user?.name || 'Demo User'}</Typography>
-                  <Typography variant="caption" color="text.secondary">{user?.email || 'user@nexus.io'}</Typography>
+                  <Typography variant="subtitle2" fontWeight={700}>{user?.name || 'Account'}</Typography>
+                  <Typography variant="caption" color="text.secondary">{user?.email || ''}</Typography>
                   <Box sx={{ mt: 0.5 }}><RoleChip role={user?.role || 'admin'} /></Box>
                 </Box>
               </Stack>

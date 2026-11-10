@@ -18,7 +18,7 @@ import SpeedIcon from '@mui/icons-material/SpeedOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { LandingNav, Footer } from '../../components/layout';
 import { GradientText } from '../../components/ui';
-import { featureCards } from '../../data/mockData';
+import { featureCards } from '../../data/marketing';
 
 const ICON_MAP = {
   analytics: <InsightsIcon fontSize="large" />,

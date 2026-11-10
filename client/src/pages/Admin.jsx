@@ -16,11 +16,18 @@ import KeyIcon from '@mui/icons-material/KeyOutlined';
 import { useSelector } from 'react-redux';
 import { PageHeader, SectionCard, KpiCard, AppAvatar, RoleChip, StatusChip, EmptyState } from '../components/ui';
 import { DonutChart, BarTrendChart } from '../components/charts';
-import { platformUsers, activityFeed } from '../data/mockData';
+import { useQuery } from '@tanstack/react-query';
+import { DEMO_AVAILABLE } from '../config/env';
+import { authService } from '../services';
+// Sample dataset: dev builds only. Vite replaces DEMO_AVAILABLE with a
+// literal, so the whole `mock*` import is tree-shaken out of production.
+import { platformUsers as mockPlatformUsers, activityFeed as mockActivityFeed } from '../data/sampleData';
+// Sample users only seed dev builds (and act as the offline fallback).
+const activityFeed = DEMO_AVAILABLE ? mockActivityFeed : [];
 import { formatRelative, formatDate } from '../utils/format';
 import { hasRole, ROLES, permissionsForRole, ROLE_LABELS, PERMISSIONS } from '../utils/rbac';
 
-const AUDIT_ROWS = [
+const SAMPLE_AUDIT_ROWS = [
   { id: 'aud_1', actor: 'Ava Mitchell', action: 'Updated role: Priya Nair → viewer', target: 'usr_5', time: '2026-11-03T08:40:00Z', ip: '197.232.60.14' },
   { id: 'aud_2', actor: 'System', action: 'API key “Local dev” created', target: 'key_3', time: '2026-10-28T12:00:00Z', ip: '—' },
   { id: 'aud_3', actor: 'Maya Chen', action: 'Invited Tom Becker (manager)', target: 'usr_8', time: '2026-10-25T15:22:00Z', ip: '102.68.76.9' },
@@ -28,11 +35,21 @@ const AUDIT_ROWS = [
   { id: 'aud_5', actor: 'System', action: 'Blocked suspicious login (5 failed attempts)', target: 'usr_7', time: '2026-10-19T03:12:00Z', ip: '41.90.12.201' },
 ];
 
-const ROLE_MIX = [
+const SAMPLE_ROLE_MIX = [
   { name: 'Admins', value: 2, color: '#7C3AED' },
   { name: 'Managers', value: 3, color: '#4F46E5' },
   { name: 'Viewers', value: 3, color: '#0EA5E9' },
 ];
+// Audit log + role mix are sample data — dev builds only. Production shows an
+// empty audit trail until the real audit endpoint is wired up.
+const AUDIT_ROWS = DEMO_AVAILABLE ? SAMPLE_AUDIT_ROWS : [];
+const SAMPLE_ROLE_MIX_DATA = DEMO_AVAILABLE ? SAMPLE_ROLE_MIX : [];
+// Role mix is derived from the real user list; the sample split is a dev fallback.
+const roleMixFor = (users) => {
+  if (!users.length) return SAMPLE_ROLE_MIX_DATA;
+  const counts = users.reduce((acc, u) => ({ ...acc, [u.role]: (acc[u.role] || 0) + 1 }), {});
+  return Object.entries(counts).map(([name, value]) => ({ name: name[0].toUpperCase() + name.slice(1) + 's', value }));
+};
 
 const Admin = () => {
   const user = useSelector((state) => state.auth.user);
@@ -40,6 +57,19 @@ const Admin = () => {
   const [tab, setTab] = React.useState(0);
   const [search, setSearch] = React.useState('');
   const [menuAnchor, setMenuAnchor] = React.useState(null);
+
+  // Real workspace users. Sample users are only used when the API is
+  // unreachable in a dev build — production renders an empty table.
+  const { data: usersData } = useQuery({
+    queryKey: ['platformUsers', { page: 1, limit: 100 }],
+    queryFn: () => authService.getAllUsers({ page: 1, limit: 100 }),
+    select: (data) => data.data,
+    retry: 1,
+  });
+  const remoteUsers = usersData?.users || [];
+  const platformUsers = remoteUsers.length
+    ? remoteUsers
+    : (DEMO_AVAILABLE ? mockPlatformUsers : []);
 
   const filtered = platformUsers.filter((u) =>
     `${u.name} ${u.email} ${u.title}`.toLowerCase().includes(search.toLowerCase())
@@ -60,13 +90,13 @@ const Admin = () => {
       {/* KPIs */}
       <Grid container spacing={2.5}>
         <Grid item xs={12} sm={6} lg={3}>
-          <KpiCard label="Total users" value={platformUsers.length} delta={8.4} hint="vs last month" />
+          <KpiCard label="Total users" value={platformUsers.length} hint="in this workspace" />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
-          <KpiCard label="Active today" value="5" delta={2.1} hint="of 8 seats" />
+          <KpiCard label="Active today" value={platformUsers.filter((u) => u.status === 'online').length} hint={`of ${platformUsers.length} seats`} />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
-          <KpiCard label="Admin roles" value="2" hint="least-privilege enforced" />
+          <KpiCard label="Admin roles" value={platformUsers.filter((u) => u.role === 'admin').length} hint="least-privilege enforced" />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
           <KpiCard label="Security score" value="92 / 100" delta={4} hint="SSO + MFA enabled" />
@@ -145,7 +175,7 @@ const Admin = () => {
           <Grid item xs={12} lg={4}>
             <Stack spacing={2.5}>
               <SectionCard title="Role distribution" subtitle="Seats by role">
-                <DonutChart data={ROLE_MIX} height={220} innerRadius={56} centerValue={platformUsers.length} centerLabel="seats" />
+                <DonutChart data={roleMixFor(platformUsers)} height={220} innerRadius={56} centerValue={platformUsers.length} centerLabel="seats" />
               </SectionCard>
               <SectionCard title="Roles & capabilities" subtitle="RBAC matrix" contentSx={{ pt: 1 }}>
                 <List disablePadding>

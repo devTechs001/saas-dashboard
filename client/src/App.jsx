@@ -7,6 +7,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Toaster } from 'react-hot-toast';
 
 import store from './store';
+import { purgeLegacyDemoSession } from './config/env';
 import { createAppTheme } from './theme';
 import { useRealtime } from './hooks/useRealtime';
 
@@ -195,6 +196,10 @@ function AppContent() {
     </ThemeProvider>
   );
 }
+
+// Runs once per page load, before the tree mounts: a `demo-token-*` session
+// left in localStorage by an older build must not survive into production.
+purgeLegacyDemoSession();
 
 function App() {
   return (

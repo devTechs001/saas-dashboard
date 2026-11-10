@@ -18,7 +18,12 @@ import {
   PageHeader, SectionCard, AppAvatar, RoleChip, MetricDelta, InfoRow,
 } from '../components/ui';
 import { BarTrendChart, RadialGauge } from '../components/charts';
-import { activityFeed, teamMembers } from '../data/mockData';
+import { DEMO_AVAILABLE } from '../config/env';
+// Sample dataset: dev builds only. Vite replaces DEMO_AVAILABLE with a
+// literal, so the whole `mock*` import is tree-shaken out of production.
+import { activityFeed as mockActivityFeed, teamMembers as mockTeamMembers } from '../data/sampleData';
+const activityFeed = DEMO_AVAILABLE ? mockActivityFeed : [];
+const teamMembers = DEMO_AVAILABLE ? mockTeamMembers : [];
 import { formatRelative, formatDate, getInitials, getAvatarColor } from '../utils/format';
 import { SafeText } from '../utils/safeText';
 import { updateUser } from '../store/slices/authSlice.jsx';
@@ -38,8 +43,8 @@ const Profile = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
-  const name = user?.name || 'Demo User';
-  const member = teamMembers.find((m) => m.name === name) || teamMembers[0];
+  const name = user?.name || 'Your profile';
+  const member = teamMembers.find((m) => m.name === name) || teamMembers[0] || null;
 
   const [coverId, setCoverId] = React.useState(user?.coverPhoto || 'wave');
   const [coverMenu, setCoverMenu] = React.useState(null);
@@ -47,7 +52,7 @@ const Profile = () => {
 
   // Profile completeness: avatar, name, title, email, phone, cover
   const completeness = React.useMemo(() => {
-    const fields = [user?.avatar, name, user?.title || member.title, user?.email, user?.phone, coverId];
+    const fields = [user?.avatar, name, user?.title || member?.title, user?.email, user?.phone, coverId];
     const done = fields.filter(Boolean).length;
     return Math.round((done / fields.length) * 100);
   }, [user, name, member, coverId]);
@@ -150,21 +155,21 @@ const Profile = () => {
             <Box sx={{ flex: 1, pb: 0.75 }}>
               <Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap" useFlexGap>
                 <Typography variant="h4" fontWeight={800}>{name}</Typography>
-                <RoleChip role={user?.role || member.role} />
-                <Chip size="small" label={member.status} color={member.status === 'online' ? 'success' : 'default'} variant="outlined" />
+                <RoleChip role={user?.role || member?.role || 'viewer'} />
+                {member?.status && <Chip size="small" label={member.status} color={member.status === 'online' ? 'success' : 'default'} variant="outlined" />}
               </Stack>
               <Stack direction="row" spacing={2.5} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
                 <Stack direction="row" spacing={0.75} alignItems="center">
                   <WorkIcon fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">{user?.title || member.title}</Typography>
+                  <Typography variant="body2" color="text.secondary">{user?.title || member?.title || '—'}</Typography>
                 </Stack>
                 <Stack direction="row" spacing={0.75} alignItems="center">
                   <LocationOnIcon fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">{member.location}</Typography>
+                  <Typography variant="body2" color="text.secondary">{member?.location || user?.location || '—'}</Typography>
                 </Stack>
                 <Stack direction="row" spacing={0.75} alignItems="center">
                   <EmailIcon fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">{user?.email || member.email}</Typography>
+                  <Typography variant="body2" color="text.secondary">{user?.email || member?.email || ''}</Typography>
                 </Stack>
                 <Stack direction="row" spacing={0.75} alignItems="center">
                   <CalendarIcon fontSize="small" color="action" />
@@ -181,7 +186,7 @@ const Profile = () => {
         <Grid item xs={12} sm={6} lg={3}>
           <Card><CardContent>
             <Typography variant="body2" color="text.secondary" fontWeight={600}>Tasks completed</Typography>
-            <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{member.tasksDone}</Typography>
+            <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{member?.tasksDone ?? '—'}</Typography>
             <MetricDelta value={12.0} />
           </CardContent></Card>
         </Grid>
@@ -195,14 +200,14 @@ const Profile = () => {
         <Grid item xs={12} sm={6} lg={3}>
           <Card><CardContent>
             <Typography variant="body2" color="text.secondary" fontWeight={600}>Reports authored</Typography>
-            <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>17</Typography>
+            <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{member?.reportsAuthored ?? '—'}</Typography>
             <MetricDelta value={-2.2} />
           </CardContent></Card>
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
           <Card><CardContent>
             <Typography variant="body2" color="text.secondary" fontWeight={600}>Team kudos</Typography>
-            <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>42 🎉</Typography>
+            <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{member?.kudos ?? '—'}</Typography>
             <MetricDelta value={21.4} />
           </CardContent></Card>
         </Grid>
@@ -216,7 +221,7 @@ const Profile = () => {
               data={[
                 { month: 'Jun', done: 12 }, { month: 'Jul', done: 16 }, { month: 'Aug', done: 14 },
                 { month: 'Sep', done: 21 }, { month: 'Oct', done: 24 }, { month: 'Nov', done: 9 },
-              ]}
+              ].slice(0, DEMO_AVAILABLE ? 6 : 0)}
               xKey="month"
               height={250}
               series={[{ key: 'done', name: 'Tasks', color: '#4F46E5' }]}
@@ -230,10 +235,10 @@ const Profile = () => {
               <Grid item xs={6}><RadialGauge value={78} label="Pipeline" color="#0EA5E9" /></Grid>
             </Grid>
             <Divider sx={{ my: 1.5 }} />
-            <InfoRow label="Manager" value="Ava Mitchell" />
-            <InfoRow label="Team" value="Revenue Operations" />
-            <InfoRow label="Phone" value={user?.phone || '+254 712 345 678'} />
-            <InfoRow label="Location" value={member.location} />
+            <InfoRow label="Manager" value={member?.manager || user?.manager || '—'} />
+            <InfoRow label="Team" value={member?.team || user?.team || '—'} />
+            <InfoRow label="Phone" value={user?.phone || '—'} />
+            <InfoRow label="Location" value={member?.location || user?.location || '—'} />
           </SectionCard>
         </Grid>
       </Grid>

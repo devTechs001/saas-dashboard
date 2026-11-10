@@ -18,7 +18,7 @@ import PaletteIcon from '@mui/icons-material/PaletteOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { LandingNav, Footer } from '../../components/layout';
 import { GradientText } from '../../components/ui';
-import { featureCards, testimonials, clientLogos, statsBar, plans, faqs } from '../../data/mockData';
+import { featureCards, testimonials, clientLogos, statsBar, plans, faqs } from '../../data/marketing';
 
 const ICON_MAP = {
   analytics: <InsightsIcon fontSize="large" />,

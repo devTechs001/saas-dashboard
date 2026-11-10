@@ -18,6 +18,7 @@ import { useDispatch } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice.jsx';
 import { authService } from '../services';
 import { startDemoSession } from '../utils/demoAuth';
+import { DEMO_AVAILABLE } from '../config/env';
 import AuthLayout from '../components/auth/AuthLayout';
 
 const COMPANY_SIZES = ['1–10', '11–50', '51–200', '201–1000', '1000+'];
@@ -45,14 +46,17 @@ const Register = () => {
         dispatch(loginSuccess(response.data));
         navigate('/onboarding');
       } catch (err) {
-        if (!err.response) {
+        // Demo fallback — dev builds only (see config/env).
+        if (DEMO_AVAILABLE && !err.response) {
           const session = startDemoSession('admin');
           dispatch(loginSuccess(session));
           navigate('/onboarding');
           return;
         }
-        dispatch(loginFailure(err.response?.data?.message || 'Registration failed'));
-        setError(err.response?.data?.message || 'Registration failed. Please try again.');
+        const message = err.response?.data?.message
+          || (err.response ? 'Registration failed. Please try again.' : 'Cannot reach the server. Please try again shortly.');
+        dispatch(loginFailure(message));
+        setError(message);
       } finally {
         setSubmitting(false);
       }
@@ -151,17 +155,21 @@ const Register = () => {
         </Stack>
       </form>
 
-      <Divider sx={{ my: 3 }}>
-        <Chip label="just looking around?" size="small" sx={{ fontWeight: 600 }} />
-      </Divider>
+      {DEMO_AVAILABLE && (
+        <>
+          <Divider sx={{ my: 3 }}>
+            <Chip label="just looking around?" size="small" sx={{ fontWeight: 600 }} />
+          </Divider>
 
-      <Button
-        fullWidth variant="outlined" size="large" startIcon={<AutoAwesomeIcon />}
-        onClick={() => { const s = startDemoSession('admin'); dispatch(loginSuccess(s)); navigate('/dashboard'); }}
-        sx={{ borderRadius: 2.5 }}
-      >
-        Explore the live demo
-      </Button>
+          <Button
+            fullWidth variant="outlined" size="large" startIcon={<AutoAwesomeIcon />}
+            onClick={() => { const s = startDemoSession('admin'); dispatch(loginSuccess(s)); navigate('/dashboard'); }}
+            sx={{ borderRadius: 2.5 }}
+          >
+            Explore the live demo
+          </Button>
+        </>
+      )}
     </AuthLayout>
   );
 };

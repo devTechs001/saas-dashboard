@@ -1,5 +1,6 @@
 // Demo-mode authentication: lets the UI be explored without a live core-api.
-// Used as a fallback when the API is unreachable, and by the "Explore demo" buttons.
+// DEV ONLY — every caller must be gated behind DEMO_AVAILABLE (see config/env).
+import { DEMO_AVAILABLE } from '../config/env';
 
 export const DEMO_USERS = {
   admin: {
@@ -25,7 +26,15 @@ export const DEMO_USERS = {
   },
 };
 
+/**
+ * Start a local, fake session. Throws if demo mode is disabled so a stray
+ * call can never silently authenticate someone in a production build.
+ */
 export const startDemoSession = (role = 'admin') => {
+  if (!DEMO_AVAILABLE) {
+    // Production builds never create a fake session.
+    throw new Error('Demo mode is disabled in this build.');
+  }
   const user = DEMO_USERS[role] || DEMO_USERS.admin;
   localStorage.setItem('token', `demo-token-${role}`);
   localStorage.setItem('user', JSON.stringify(user));

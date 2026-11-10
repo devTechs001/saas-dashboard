@@ -8,7 +8,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { LandingNav, Footer } from '../components/layout';
 import { GradientText } from '../components/ui';
-import { plans } from '../data/mockData';
+import { plans } from '../data/marketing';
 
 const COMPARISON = [
   { feature: 'Team members', starter: '5', pro: '25', business: 'Unlimited', enterprise: 'Unlimited' },

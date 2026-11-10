@@ -15,7 +15,13 @@ import BoltIcon from '@mui/icons-material/BoltOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import { PageHeader, SectionCard, KpiCard, StatusChip, AppAvatar } from '../components/ui';
 import { AreaTrendChart } from '../components/charts';
-import { apiKeys, webhooks, trafficSeries } from '../data/mockData';
+import { DEMO_AVAILABLE } from '../config/env';
+// Sample dataset: dev builds only. Vite replaces DEMO_AVAILABLE with a
+// literal, so the whole `mock*` import is tree-shaken out of production.
+import { apiKeys as mockApiKeys, webhooks as mockWebhooks, trafficSeries as mockTrafficSeries } from '../data/sampleData';
+const apiKeys = DEMO_AVAILABLE ? mockApiKeys : [];
+const webhooks = DEMO_AVAILABLE ? mockWebhooks : [];
+const trafficSeries = DEMO_AVAILABLE ? mockTrafficSeries : [];
 import { formatRelative, formatCompact, formatDate } from '../utils/format';
 
 const CODE_SNIPPET = `curl -X GET https://api.nexus.io/api/v1/customers \\
