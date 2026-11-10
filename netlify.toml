@@ -1,36 +1,70 @@
 # Netlify deployment — client (React SPA)
 # Docs: https://docs.netlify.com/configure-builds/file-based-configuration/
+#
+# NOTE: `publish` is resolved relative to `base`, so "dist" means
+# `client/dist`. Writing "client/dist" here would resolve to
+# `client/client/dist` and the deploy would fail with "Deploy directory
+# 'dist' does not exist."
 
 [build]
   base = "client/"
-  command = "npm run build"
+  command = "npm ci --no-audit --no-fund && npm run build"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
-  # Point the SPA at the Render-hosted API (no trailing /api needed here):
-  # VITE_API_URL = "https://nexus-api.onrender.com/api"
-  # VITE_SOCKET_URL = "https://nexus-api.onrender.com"
+  NPM_FLAGS = "--no-audit --no-fund"
+  # Set these in the Netlify UI (Site settings → Environment variables) —
+  # they are baked into the SPA bundle at build time and are NOT secrets.
+  #   VITE_API_URL    = https://<your-render-service>.onrender.com/api
+  #   VITE_SOCKET_URL = https://<your-render-service>.onrender.com
+  # Without VITE_API_URL the app falls back to same-origin "/api", which
+  # Netlify does not serve (the API lives on Render).
 
-# SPA fallback: all routes serve the React app (client-side routing)
+# ---- SPA routing -----------------------------------------------------------
+
+# SPA fallback: everything else serves the React app (client-side routing).
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Long-cache hashed build assets
+# ---- Headers ---------------------------------------------------------------
+
+# HTML entry point must always be revalidated, otherwise browsers keep a
+# stale index.html that references old hashed bundles after a deploy.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Long-cache hashed build assets (safe: filenames change on every build).
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Security headers on everything
+[[headers]]
+  for = "/favicon.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+# Security headers on everything.
+# The CSP is intentionally permissive towards the API origin: `https:` in
+# connect-src keeps the deployed SPA able to reach the Render API, its
+# REST/websocket endpoints and any CDN fonts. Tighten it to your exact API
+# host once the final domain is known.
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.onrender.com wss://*.onrender.com https: wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https: wss:; worker-src 'self' blob:; frame-src 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests"

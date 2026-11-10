@@ -92,7 +92,8 @@ function AppShell({ children, roles, permission }) {
   );
 }
 
-// Inner component that uses Redux hooks
+// Inner component that uses Redux hooks. Rendered *inside* QueryClientProvider
+// so hooks like useRealtime() can access the client on every render.
 function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
   const mode = useSelector((state) => state.theme.mode);
@@ -105,7 +106,8 @@ function AppContent() {
   const resolvedMode = useResolvedMode(mode);
   const muiTheme = createAppTheme(resolvedMode, accent);
 
-  // Realtime sync: notifications + dashboard/customer refresh + sounds
+  // Realtime sync: notifications + dashboard/customer refresh + sounds.
+  // Safe here: AppContent is always rendered under QueryClientProvider.
   const isLive = useRealtime();
 
   const handleSplashComplete = () => {
@@ -122,84 +124,84 @@ function AppContent() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={muiTheme}>
-        <CssBaseline />
-        <Toaster position="top-right" />
-        <BrowserRouter>
-          <Suspense fallback={<PageFallback />}>
-            <Routes>
-              {/* ============ Public / Landing (SPA routes, lazy chunks) ============ */}
-              <Route path="/" element={<LandingHome />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
+    <ThemeProvider theme={muiTheme}>
+      <CssBaseline />
+      <Toaster position="top-right" />
+      <BrowserRouter>
+        <Suspense fallback={<PageFallback />}>
+          <Routes>
+            {/* ============ Public / Landing (SPA routes, lazy chunks) ============ */}
+            <Route path="/" element={<LandingHome />} />
+            <Route path="/features" element={<Features />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
 
-              {/* ============ Auth ============ */}
-              <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
-              <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
+            {/* ============ Auth ============ */}
+            <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
+            <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-              {/* ============ Onboarding ============ */}
-              <Route
-                path="/onboarding"
-                element={
-                  <ProtectedRoute>
-                    <Onboarding onComplete={handleOnboardingComplete} />
-                  </ProtectedRoute>
-                }
-              />
+            {/* ============ Onboarding ============ */}
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <Onboarding onComplete={handleOnboardingComplete} />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* ============ App (protected, role-based) ============ */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    {!hasCompletedOnboarding ? (
+            {/* ============ App (protected, role-based) ============ */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  {!hasCompletedOnboarding ? (
+                    <Suspense fallback={<PageFallback />}>
+                      <Onboarding onComplete={handleOnboardingComplete} />
+                    </Suspense>
+                  ) : (
+                    <MainLayout>
                       <Suspense fallback={<PageFallback />}>
-                        <Onboarding onComplete={handleOnboardingComplete} />
+                        <Dashboard isLive={isLive} />
                       </Suspense>
-                    ) : (
-                      <MainLayout>
-                        <Suspense fallback={<PageFallback />}>
-                          <Dashboard isLive={isLive} />
-                        </Suspense>
-                      </MainLayout>
-                    )}
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/customers" element={<AppShell permission={PERMISSIONS.CUSTOMERS_VIEW}><Customers /></AppShell>} />
-              <Route path="/analytics" element={<AppShell permission={PERMISSIONS.ANALYTICS_VIEW}><Analytics /></AppShell>} />
-              <Route path="/reports" element={<AppShell permission={PERMISSIONS.REPORTS_VIEW}><Reports /></AppShell>} />
-              <Route path="/team" element={<AppShell permission={PERMISSIONS.TEAM_VIEW}><Team /></AppShell>} />
-              <Route path="/chat" element={<AppShell permission={PERMISSIONS.CHAT_USE}><Chat /></AppShell>} />
-              <Route path="/ai" element={<AppShell permission={PERMISSIONS.AI_USE}><AIAssistant /></AppShell>} />
-              <Route path="/billing" element={<AppShell permission={PERMISSIONS.BILLING_VIEW}><Billing /></AppShell>} />
-              <Route path="/developers" element={<AppShell permission={PERMISSIONS.DEVELOPERS_VIEW}><Developers /></AppShell>} />
-              <Route path="/admin" element={<AppShell roles={['admin']}><Admin /></AppShell>} />
-              <Route path="/settings" element={<AppShell permission={PERMISSIONS.SETTINGS_VIEW}><Settings /></AppShell>} />
-              <Route path="/profile" element={<AppShell><Profile /></AppShell>} />
+                    </MainLayout>
+                  )}
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/customers" element={<AppShell permission={PERMISSIONS.CUSTOMERS_VIEW}><Customers /></AppShell>} />
+            <Route path="/analytics" element={<AppShell permission={PERMISSIONS.ANALYTICS_VIEW}><Analytics /></AppShell>} />
+            <Route path="/reports" element={<AppShell permission={PERMISSIONS.REPORTS_VIEW}><Reports /></AppShell>} />
+            <Route path="/team" element={<AppShell permission={PERMISSIONS.TEAM_VIEW}><Team /></AppShell>} />
+            <Route path="/chat" element={<AppShell permission={PERMISSIONS.CHAT_USE}><Chat /></AppShell>} />
+            <Route path="/ai" element={<AppShell permission={PERMISSIONS.AI_USE}><AIAssistant /></AppShell>} />
+            <Route path="/billing" element={<AppShell permission={PERMISSIONS.BILLING_VIEW}><Billing /></AppShell>} />
+            <Route path="/developers" element={<AppShell permission={PERMISSIONS.DEVELOPERS_VIEW}><Developers /></AppShell>} />
+            <Route path="/admin" element={<AppShell roles={['admin']}><Admin /></AppShell>} />
+            <Route path="/settings" element={<AppShell permission={PERMISSIONS.SETTINGS_VIEW}><Settings /></AppShell>} />
+            <Route path="/profile" element={<AppShell><Profile /></AppShell>} />
 
-              {/* Legacy redirect */}
-              <Route path="/users" element={<Navigate to="/admin" replace />} />
+            {/* Legacy redirect */}
+            <Route path="/users" element={<Navigate to="/admin" replace />} />
 
-              {/* ============ 404 ============ */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </ThemeProvider>
-    </QueryClientProvider>
+            {/* ============ 404 ============ */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
 function App() {
   return (
     <Provider store={store}>
-      <AppContent />
+      <QueryClientProvider client={queryClient}>
+        <AppContent />
+      </QueryClientProvider>
     </Provider>
   );
 }
